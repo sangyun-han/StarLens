@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+backend/bin/
+starlens-server
+
+# Environment / local config
+.env
+.env.local
+.env.*.local
+
+# Go
+*.test
+*.out
+coverage.*
+
+# Editors & OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Logs
+*.log
+npm-debug.log*
