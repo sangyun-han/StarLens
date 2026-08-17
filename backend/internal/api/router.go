@@ -12,7 +12,13 @@ import (
 //
 // Every product endpoint lives under /api/v1 so the SPA can be served from the
 // same origin in production without path collisions.
-func Router(cfg config.ServerConfig, health *HealthHandler, cluster *ClusterHandler) *gin.Engine {
+func Router(
+	cfg config.ServerConfig,
+	health *HealthHandler,
+	cluster *ClusterHandler,
+	loads *RoutineLoadHandler,
+	alerts *AlertHandler,
+) *gin.Engine {
 	gin.SetMode(ginMode(cfg.GinMode))
 
 	engine := gin.New()
@@ -23,6 +29,8 @@ func Router(cfg config.ServerConfig, health *HealthHandler, cluster *ClusterHand
 	v1 := engine.Group("/api/v1")
 	v1.GET("/health", health.Ready)
 	cluster.register(v1)
+	loads.register(v1)
+	alerts.register(v1)
 
 	engine.NoRoute(func(c *gin.Context) {
 		respondError(c, http.StatusNotFound, "not_found",

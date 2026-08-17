@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/sangyun-han/StarLens/backend/config"
+	"github.com/sangyun-han/StarLens/backend/internal/alert"
 	"github.com/sangyun-han/StarLens/backend/internal/api"
 	"github.com/sangyun-han/StarLens/backend/internal/repository"
 	"github.com/sangyun-han/StarLens/backend/internal/service"
@@ -58,8 +59,48 @@ func run(logger *slog.Logger) error {
 	}
 	cancelPing()
 
+	// Signal context created up front so background workers share the server's
+	// lifetime.
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
 	clusterService := service.NewClusterService(repository.NewClusterRepository(db))
-	router := api.Router(cfg.Server, api.NewHealthHandler(db), api.NewClusterHandler(clusterService))
+	routineLoadService := service.NewRoutineLoadService(
+		repository.NewRoutineLoadRepository(db),
+		service.RoutineLoadAlertPolicy{
+			ErrorRowsRatio:    cfg.Alert.ErrorRowsRatio,
+			ErrorRowsMinTotal: cfg.Alert.ErrorRowsMinTotal,
+			MaxOffsetLag:      cfg.Alert.MaxOffsetLag,
+		},
+	)
+
+	alertManager := alert.NewManager(cfg.Alert.Cooldown, logger)
+	alertManager.Register(alert.NewLogNotifier(logger))
+	if cfg.Alert.WebhookURL != "" {
+		webhook, err := alert.NewWebhookNotifier(cfg.Alert.WebhookURL, cfg.Alert.WebhookFormat)
+		if err != nil {
+			return err
+		}
+		alertManager.Register(webhook)
+		logger.Info("alert webhook registered", "format", cfg.Alert.WebhookFormat)
+	}
+
+	if cfg.Alert.Enabled {
+		poller := alert.NewPoller(cfg.Alert.PollInterval, routineLoadService.CollectAlerts, alertManager, logger)
+		go poller.Run(ctx)
+		logger.Info("alert evaluation loop started",
+			"interval", cfg.Alert.PollInterval, "cooldown", cfg.Alert.Cooldown)
+	} else {
+		logger.Info("alert evaluation loop disabled (ALERT_ENABLED=false)")
+	}
+
+	router := api.Router(
+		cfg.Server,
+		api.NewHealthHandler(db),
+		api.NewClusterHandler(clusterService),
+		api.NewRoutineLoadHandler(routineLoadService),
+		api.NewAlertHandler(alertManager),
+	)
 
 	server := &http.Server{
 		Addr:              ":" + cfg.Server.Port,
@@ -78,9 +119,6 @@ func run(logger *slog.Logger) error {
 		}
 		serveErr <- nil
 	}()
-
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
 
 	select {
 	case err := <-serveErr:

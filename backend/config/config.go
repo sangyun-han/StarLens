@@ -18,6 +18,7 @@ import (
 type Config struct {
 	StarRocks StarRocksConfig
 	Server    ServerConfig
+	Alert     AlertConfig
 }
 
 // StarRocksConfig describes how to reach StarRocks over the MySQL protocol.
@@ -43,9 +44,41 @@ type ServerConfig struct {
 	GinMode        string
 }
 
+// AlertConfig describes the alerting subsystem: how often rules are evaluated,
+// how long repeats of the same condition are suppressed, where alerts are
+// delivered, and the routine load rule thresholds.
+type AlertConfig struct {
+	// Enabled turns the background evaluation loop on/off. Alerts endpoints
+	// stay mounted either way.
+	Enabled      bool
+	PollInterval time.Duration
+	// Cooldown suppresses repeats of the same alert key.
+	Cooldown time.Duration
+
+	// WebhookURL, when set, registers a webhook notifier.
+	WebhookURL string
+	// WebhookFormat is "generic" (full alert JSON) or "slack" ({"text": ...}).
+	WebhookFormat string
+
+	// ErrorRowsRatio fires when errorRows/totalRows exceeds this fraction;
+	// <= 0 disables the rule.
+	ErrorRowsRatio float64
+	// ErrorRowsMinTotal is the minimum consumed rows before the ratio rule
+	// applies.
+	ErrorRowsMinTotal int64
+	// MaxOffsetLag fires when a job's approximate offset lag exceeds this many
+	// messages; <= 0 disables the rule.
+	MaxOffsetLag int64
+}
+
 // Load reads configuration from the environment and validates it.
 func Load() (Config, error) {
 	sr, err := loadStarRocks()
+	if err != nil {
+		return Config{}, err
+	}
+
+	alertCfg, err := loadAlert()
 	if err != nil {
 		return Config{}, err
 	}
@@ -57,7 +90,27 @@ func Load() (Config, error) {
 			AllowedOrigins: envStringSlice("CORS_ALLOWED_ORIGINS", []string{"http://localhost:5173", "http://127.0.0.1:5173"}),
 			GinMode:        envString("GIN_MODE", "debug"),
 		},
+		Alert: alertCfg,
 	}, nil
+}
+
+func loadAlert() (AlertConfig, error) {
+	cfg := AlertConfig{
+		Enabled:           envBool("ALERT_ENABLED", true),
+		PollInterval:      envDuration("ALERT_POLL_INTERVAL", 30*time.Second),
+		Cooldown:          envDuration("ALERT_COOLDOWN", 10*time.Minute),
+		WebhookURL:        strings.TrimSpace(os.Getenv("ALERT_WEBHOOK_URL")),
+		WebhookFormat:     envString("ALERT_WEBHOOK_FORMAT", "generic"),
+		ErrorRowsRatio:    envFloat("ALERT_ERROR_ROWS_RATIO", 0.01),
+		ErrorRowsMinTotal: envInt64("ALERT_ERROR_ROWS_MIN_TOTAL", 10_000),
+		MaxOffsetLag:      envInt64("ALERT_MAX_OFFSET_LAG", 0),
+	}
+
+	if cfg.WebhookFormat != "generic" && cfg.WebhookFormat != "slack" {
+		return AlertConfig{}, fmt.Errorf(
+			"config: ALERT_WEBHOOK_FORMAT must be \"generic\" or \"slack\", got %q", cfg.WebhookFormat)
+	}
+	return cfg, nil
 }
 
 func loadStarRocks() (StarRocksConfig, error) {
@@ -171,6 +224,46 @@ func envInt(key string, fallback int) int {
 	}
 	v, err := strconv.Atoi(raw)
 	if err != nil || v <= 0 {
+		return fallback
+	}
+	return v
+}
+
+func envBool(key string, fallback bool) bool {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return fallback
+	}
+	v, err := strconv.ParseBool(raw)
+	if err != nil {
+		return fallback
+	}
+	return v
+}
+
+// envFloat reads a float env var. Unlike envInt it accepts zero and negative
+// values: rule thresholds use <= 0 to mean "disabled".
+func envFloat(key string, fallback float64) float64 {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return fallback
+	}
+	v, err := strconv.ParseFloat(raw, 64)
+	if err != nil {
+		return fallback
+	}
+	return v
+}
+
+// envInt64 reads an int64 env var, accepting zero and negative values for the
+// same "disabled" convention as envFloat.
+func envInt64(key string, fallback int64) int64 {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return fallback
+	}
+	v, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil {
 		return fallback
 	}
 	return v

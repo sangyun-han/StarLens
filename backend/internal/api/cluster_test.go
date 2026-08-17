@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/sangyun-han/StarLens/backend/config"
+	"github.com/sangyun-han/StarLens/backend/internal/alert"
 	"github.com/sangyun-han/StarLens/backend/internal/model"
 	"github.com/sangyun-han/StarLens/backend/internal/service"
 )
@@ -31,12 +32,37 @@ type stubPinger struct{ err error }
 func (s stubPinger) Ping(context.Context) error { return s.err }
 func (s stubPinger) Addr() string               { return "127.0.0.1:9030" }
 
+type stubRoutineLoadService struct {
+	snapshot model.RoutineLoadSnapshot
+	err      error
+}
+
+func (s stubRoutineLoadService) Snapshot(context.Context) (model.RoutineLoadSnapshot, error) {
+	return s.snapshot, s.err
+}
+
+type stubAlertStore struct {
+	recent  []alert.Alert
+	results map[string]string
+}
+
+func (s stubAlertStore) Recent() []alert.Alert { return s.recent }
+func (s stubAlertStore) Test(context.Context) (alert.Alert, map[string]string) {
+	return alert.Alert{RuleID: "test", Key: "test"}, s.results
+}
+
 func newTestRouter(cluster topologyReader, db pinger) *gin.Engine {
+	return newTestRouterFull(cluster, db, stubRoutineLoadService{}, stubAlertStore{})
+}
+
+func newTestRouterFull(cluster topologyReader, db pinger, loads routineLoadSnapshotter, alerts alertStore) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	return Router(
 		config.ServerConfig{GinMode: gin.TestMode, AllowedOrigins: []string{"http://localhost:5173"}},
 		NewHealthHandler(db),
 		NewClusterHandler(cluster),
+		NewRoutineLoadHandler(loads),
+		NewAlertHandler(alerts),
 	)
 }
 
