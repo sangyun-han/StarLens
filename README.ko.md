@@ -207,3 +207,7 @@ make check   # 위 전부 — CI가 실행하는 것
 - [ ] 데이터 리니지 — React Flow 기반 베이스 테이블 ↔ Materialized View DAG
 - [ ] 메트릭 — ECharts 기반 백엔드별 CPU/메모리 시계열 (Prometheus 클라이언트)
 - [ ] 추가 노티파이어 채널 (이메일, PagerDuty) & 알림 규칙 설정 UI
+
+## 라이선스
+
+StarLens는 [Apache License 2.0](LICENSE)으로 배포됩니다.

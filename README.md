@@ -209,3 +209,7 @@ make check   # all of the above — what CI runs
 - [ ] Data lineage — base table ↔ materialized view DAG via React Flow
 - [ ] Metrics — per-backend CPU/memory time series via ECharts (Prometheus client)
 - [ ] More notifier channels (email, PagerDuty) & alert rule configuration UI
+
+## License
+
+StarLens is licensed under the [Apache License 2.0](LICENSE).
