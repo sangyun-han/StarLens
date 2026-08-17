@@ -18,6 +18,7 @@ func Router(
 	cluster *ClusterHandler,
 	loads *RoutineLoadHandler,
 	alerts *AlertHandler,
+	queries *QueryHandler,
 ) *gin.Engine {
 	gin.SetMode(ginMode(cfg.GinMode))
 
@@ -31,6 +32,7 @@ func Router(
 	cluster.register(v1)
 	loads.register(v1)
 	alerts.register(v1)
+	queries.register(v1)
 
 	engine.NoRoute(func(c *gin.Context) {
 		respondError(c, http.StatusNotFound, "not_found",

@@ -39,7 +39,7 @@ func sampleRoutineLoadSnapshot() model.RoutineLoadSnapshot {
 func TestRoutineLoadSnapshotRoute(t *testing.T) {
 	router := newTestRouterFull(
 		stubClusterService{}, stubPinger{},
-		stubRoutineLoadService{snapshot: sampleRoutineLoadSnapshot()}, stubAlertStore{},
+		stubRoutineLoadService{snapshot: sampleRoutineLoadSnapshot()}, stubAlertStore{}, stubQueryService{},
 	)
 
 	rec := httptest.NewRecorder()
@@ -65,7 +65,7 @@ func TestRoutineLoadUnavailableReturns503(t *testing.T) {
 	cause := fmt.Errorf("%w: reading routine load jobs failed", service.ErrUnavailable)
 	router := newTestRouterFull(
 		stubClusterService{}, stubPinger{},
-		stubRoutineLoadService{err: cause}, stubAlertStore{},
+		stubRoutineLoadService{err: cause}, stubAlertStore{}, stubQueryService{},
 	)
 
 	rec := httptest.NewRecorder()
@@ -84,7 +84,7 @@ func TestAlertRoutes(t *testing.T) {
 		}},
 		results: map[string]string{"log": "ok"},
 	}
-	router := newTestRouterFull(stubClusterService{}, stubPinger{}, stubRoutineLoadService{}, store)
+	router := newTestRouterFull(stubClusterService{}, stubPinger{}, stubRoutineLoadService{}, store, stubQueryService{})
 
 	t.Run("recent", func(t *testing.T) {
 		rec := httptest.NewRecorder()
@@ -123,7 +123,7 @@ func TestAlertRoutes(t *testing.T) {
 	})
 
 	t.Run("empty history is [] not null", func(t *testing.T) {
-		emptyRouter := newTestRouterFull(stubClusterService{}, stubPinger{}, stubRoutineLoadService{}, stubAlertStore{})
+		emptyRouter := newTestRouterFull(stubClusterService{}, stubPinger{}, stubRoutineLoadService{}, stubAlertStore{}, stubQueryService{})
 		rec := httptest.NewRecorder()
 		emptyRouter.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/alerts", nil))
 

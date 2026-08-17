@@ -51,11 +51,25 @@ func (s stubAlertStore) Test(context.Context) (alert.Alert, map[string]string) {
 	return alert.Alert{RuleID: "test", Key: "test"}, s.results
 }
 
-func newTestRouter(cluster topologyReader, db pinger) *gin.Engine {
-	return newTestRouterFull(cluster, db, stubRoutineLoadService{}, stubAlertStore{})
+type stubQueryService struct {
+	result    model.QueryResult
+	databases []string
+	err       error
 }
 
-func newTestRouterFull(cluster topologyReader, db pinger, loads routineLoadSnapshotter, alerts alertStore) *gin.Engine {
+func (s stubQueryService) Execute(context.Context, model.QueryRequest) (model.QueryResult, error) {
+	return s.result, s.err
+}
+
+func (s stubQueryService) Databases(context.Context) ([]string, error) {
+	return s.databases, s.err
+}
+
+func newTestRouter(cluster topologyReader, db pinger) *gin.Engine {
+	return newTestRouterFull(cluster, db, stubRoutineLoadService{}, stubAlertStore{}, stubQueryService{})
+}
+
+func newTestRouterFull(cluster topologyReader, db pinger, loads routineLoadSnapshotter, alerts alertStore, queries queryExecutor) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	return Router(
 		config.ServerConfig{GinMode: gin.TestMode, AllowedOrigins: []string{"http://localhost:5173"}},
@@ -63,6 +77,7 @@ func newTestRouterFull(cluster topologyReader, db pinger, loads routineLoadSnaps
 		NewClusterHandler(cluster),
 		NewRoutineLoadHandler(loads),
 		NewAlertHandler(alerts),
+		NewQueryHandler(queries),
 	)
 }
 

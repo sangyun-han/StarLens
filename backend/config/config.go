@@ -19,6 +19,18 @@ type Config struct {
 	StarRocks StarRocksConfig
 	Server    ServerConfig
 	Alert     AlertConfig
+	Query     QueryConfig
+}
+
+// QueryConfig bounds the SQL worksheet's ad-hoc query execution.
+type QueryConfig struct {
+	// ReadOnly restricts statements to SELECT/SHOW/DESCRIBE/EXPLAIN/WITH.
+	// StarLens ships without authentication, so writes are off by default.
+	ReadOnly bool
+	// MaxRows is the hard cap on returned rows; client requests are clamped.
+	MaxRows int
+	// Timeout bounds one worksheet execution end to end.
+	Timeout time.Duration
 }
 
 // StarRocksConfig describes how to reach StarRocks over the MySQL protocol.
@@ -27,6 +39,9 @@ type StarRocksConfig struct {
 	DSN string
 	// Addr is the host:port the DSN points at, kept for logs and error messages.
 	Addr string
+	// Database is the DSN's default database, restored after scoped worksheet
+	// executions.
+	Database string
 
 	MaxOpenConns    int
 	MaxIdleConns    int
@@ -91,6 +106,11 @@ func Load() (Config, error) {
 			GinMode:        envString("GIN_MODE", "debug"),
 		},
 		Alert: alertCfg,
+		Query: QueryConfig{
+			ReadOnly: envBool("QUERY_READ_ONLY", true),
+			MaxRows:  envInt("QUERY_MAX_ROWS", 1000),
+			Timeout:  envDuration("QUERY_TIMEOUT", time.Minute),
+		},
 	}, nil
 }
 
@@ -143,6 +163,7 @@ func loadStarRocks() (StarRocksConfig, error) {
 	return StarRocksConfig{
 		DSN:             dsn,
 		Addr:            parsed.Addr,
+		Database:        parsed.DBName,
 		MaxOpenConns:    maxOpen,
 		MaxIdleConns:    maxIdle,
 		ConnMaxLifetime: lifetime,

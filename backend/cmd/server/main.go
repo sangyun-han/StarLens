@@ -94,12 +94,22 @@ func run(logger *slog.Logger) error {
 		logger.Info("alert evaluation loop disabled (ALERT_ENABLED=false)")
 	}
 
+	queryService := service.NewQueryService(
+		repository.NewQueryRepository(db, cfg.StarRocks.Database),
+		service.QueryPolicy{
+			ReadOnly: cfg.Query.ReadOnly,
+			MaxRows:  cfg.Query.MaxRows,
+			Timeout:  cfg.Query.Timeout,
+		},
+	)
+
 	router := api.Router(
 		cfg.Server,
 		api.NewHealthHandler(db),
 		api.NewClusterHandler(clusterService),
 		api.NewRoutineLoadHandler(routineLoadService),
 		api.NewAlertHandler(alertManager),
+		api.NewQueryHandler(queryService),
 	)
 
 	server := &http.Server{
