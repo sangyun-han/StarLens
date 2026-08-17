@@ -1,5 +1,7 @@
 # StarLens
 
+**English** | [한국어](README.ko.md)
+
 A management and observability dashboard for [StarRocks](https://www.starrocks.io/)
 lakehouse clusters — cluster topology, an intelligent SQL worksheet, and data
 skew / lineage visualization in one place.
@@ -148,6 +150,19 @@ Adding a channel (email, PagerDuty, Opsgenie, ...) means implementing the
 two-method `alert.Notifier` interface in `backend/internal/alert` and
 registering it in `cmd/server/main.go`.
 
+## UI languages
+
+The dashboard ships in **English** and **Korean**; the switcher lives in the
+header and the choice is remembered per browser (falling back to the browser
+locale, then English).
+
+Translations follow the pattern used by Dify and Grafana — react-i18next with
+one JSON file per language — and languages are **auto-discovered** from
+[`frontend/src/locales/`](frontend/src/locales/): adding one is a single-file
+contribution with no registration step. Copy `en.json`, translate the values,
+set `meta.name` to the language's native name, done. See
+[`frontend/src/locales/README.md`](frontend/src/locales/README.md) for details.
+
 ## Layout
 
 ```
@@ -169,8 +184,10 @@ frontend/src/
 ├── features/loads/      # routine load monitoring + alert history
 ├── hooks/               # TanStack Query hooks
 ├── lib/                 # axios client, formatters, query client
+├── locales/             # UI translations, one JSON per language
 ├── store/               # Zustand UI state
-└── types/               # TypeScript mirrors of the API contract
+├── types/               # TypeScript mirrors of the API contract
+└── i18n.ts              # react-i18next setup with locale auto-discovery
 ```
 
 ## Development
@@ -187,6 +204,7 @@ make check   # all of the above — what CI runs
 - [x] Cluster topology viewer (FE/BE liveness, roles, tablets, disk & memory)
 - [x] Routine load monitoring — job states, error rows, approximate lag
 - [x] Alerting — rule evaluation loop, log + webhook notifiers, test-fire endpoint
+- [x] UI internationalization (English & Korean, single-file language contributions)
 - [ ] SQL worksheet — Monaco editor, result grid, query profile
 - [ ] Data lineage — base table ↔ materialized view DAG via React Flow
 - [ ] Metrics — per-backend CPU/memory time series via ECharts (Prometheus client)
