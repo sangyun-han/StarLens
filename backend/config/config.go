@@ -1,0 +1,189 @@
+// Package config loads StarLens server configuration from the environment.
+//
+// Every value has a sane local-development default so that `go run ./cmd/server`
+// works against a stock StarRocks all-in-one container with no setup.
+package config
+
+import (
+	"fmt"
+	"os"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/go-sql-driver/mysql"
+)
+
+// Config is the fully resolved server configuration.
+type Config struct {
+	StarRocks StarRocksConfig
+	Server    ServerConfig
+}
+
+// StarRocksConfig describes how to reach StarRocks over the MySQL protocol.
+type StarRocksConfig struct {
+	// DSN is a normalized go-sql-driver/mysql DSN aimed at an FE query port.
+	DSN string
+	// Addr is the host:port the DSN points at, kept for logs and error messages.
+	Addr string
+
+	MaxOpenConns    int
+	MaxIdleConns    int
+	ConnMaxLifetime time.Duration
+	// QueryTimeout bounds a single metadata query (SHOW FRONTENDS, ...).
+	QueryTimeout time.Duration
+	// DialTimeout bounds the initial TCP handshake with an FE.
+	DialTimeout time.Duration
+}
+
+// ServerConfig describes the HTTP listener.
+type ServerConfig struct {
+	Port           string
+	AllowedOrigins []string
+	GinMode        string
+}
+
+// Load reads configuration from the environment and validates it.
+func Load() (Config, error) {
+	sr, err := loadStarRocks()
+	if err != nil {
+		return Config{}, err
+	}
+
+	return Config{
+		StarRocks: sr,
+		Server: ServerConfig{
+			Port:           envString("SERVER_PORT", "8080"),
+			AllowedOrigins: envStringSlice("CORS_ALLOWED_ORIGINS", []string{"http://localhost:5173", "http://127.0.0.1:5173"}),
+			GinMode:        envString("GIN_MODE", "debug"),
+		},
+	}, nil
+}
+
+func loadStarRocks() (StarRocksConfig, error) {
+	var (
+		maxOpen  = envInt("STARROCKS_MAX_OPEN_CONNS", 25)
+		maxIdle  = envInt("STARROCKS_MAX_IDLE_CONNS", 10)
+		lifetime = envDuration("STARROCKS_CONN_MAX_LIFETIME", 30*time.Minute)
+		queryTO  = envDuration("STARROCKS_QUERY_TIMEOUT", 10*time.Second)
+		dialTO   = envDuration("STARROCKS_DIAL_TIMEOUT", 5*time.Second)
+	)
+
+	// An idle pool larger than the open limit is silently clamped by database/sql,
+	// which hides a misconfiguration — surface it instead.
+	if maxIdle > maxOpen {
+		return StarRocksConfig{}, fmt.Errorf(
+			"config: STARROCKS_MAX_IDLE_CONNS (%d) must not exceed STARROCKS_MAX_OPEN_CONNS (%d)", maxIdle, maxOpen)
+	}
+
+	dsn, err := resolveDSN(dialTO)
+	if err != nil {
+		return StarRocksConfig{}, err
+	}
+
+	// Re-parse to echo back exactly what the driver will dial.
+	parsed, err := mysql.ParseDSN(dsn)
+	if err != nil {
+		return StarRocksConfig{}, fmt.Errorf("config: invalid StarRocks DSN: %w", err)
+	}
+
+	return StarRocksConfig{
+		DSN:             dsn,
+		Addr:            parsed.Addr,
+		MaxOpenConns:    maxOpen,
+		MaxIdleConns:    maxIdle,
+		ConnMaxLifetime: lifetime,
+		QueryTimeout:    queryTO,
+		DialTimeout:     dialTO,
+	}, nil
+}
+
+// resolveDSN prefers STARROCKS_DSN and otherwise assembles a DSN from parts.
+// Either way the result is round-tripped through mysql.Config so credentials are
+// escaped correctly and connection timeouts are always present.
+func resolveDSN(dialTimeout time.Duration) (string, error) {
+	cfg := mysql.NewConfig()
+	cfg.Net = "tcp"
+
+	if raw := strings.TrimSpace(os.Getenv("STARROCKS_DSN")); raw != "" {
+		parsed, err := mysql.ParseDSN(raw)
+		if err != nil {
+			return "", fmt.Errorf("config: STARROCKS_DSN is not a valid MySQL DSN (want user:pass@tcp(host:9030)/db): %w", err)
+		}
+		cfg = parsed
+	} else {
+		cfg.User = envString("STARROCKS_USER", "root")
+		cfg.Passwd = os.Getenv("STARROCKS_PASSWORD")
+		cfg.Addr = envString("STARROCKS_HOST", "127.0.0.1") + ":" + envString("STARROCKS_PORT", "9030")
+		cfg.DBName = envString("STARROCKS_DATABASE", "information_schema")
+	}
+
+	if cfg.Addr == "" {
+		return "", fmt.Errorf("config: StarRocks address is empty; set STARROCKS_DSN or STARROCKS_HOST")
+	}
+	if cfg.Timeout == 0 {
+		cfg.Timeout = dialTimeout
+	}
+	if cfg.Params == nil {
+		cfg.Params = map[string]string{}
+	}
+	if _, ok := cfg.Params["charset"]; !ok {
+		cfg.Params["charset"] = "utf8mb4"
+	}
+	// StarRocks reports SHOW/metadata timestamps as strings and happily returns
+	// "0000-00-00 00:00:00" for nodes that never started, which the driver cannot
+	// convert to time.Time. Everything is read as text, so leave ParseTime off.
+	cfg.ParseTime = false
+
+	return cfg.FormatDSN(), nil
+}
+
+func envString(key, fallback string) string {
+	if v := strings.TrimSpace(os.Getenv(key)); v != "" {
+		return v
+	}
+	return fallback
+}
+
+func envStringSlice(key string, fallback []string) []string {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return fallback
+	}
+
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	if len(out) == 0 {
+		return fallback
+	}
+	return out
+}
+
+func envInt(key string, fallback int) int {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return fallback
+	}
+	v, err := strconv.Atoi(raw)
+	if err != nil || v <= 0 {
+		return fallback
+	}
+	return v
+}
+
+func envDuration(key string, fallback time.Duration) time.Duration {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return fallback
+	}
+	v, err := time.ParseDuration(raw)
+	if err != nil || v <= 0 {
+		return fallback
+	}
+	return v
+}
