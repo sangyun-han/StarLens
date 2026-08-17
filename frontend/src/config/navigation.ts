@@ -1,4 +1,4 @@
-import { Activity, Network, SquareTerminal, Workflow } from 'lucide-react'
+import { Activity, Network, Rss, SquareTerminal, Workflow } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 export interface NavItem {
@@ -17,6 +17,13 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: 'Topology',
     description: 'Frontend and backend nodes, liveness and capacity',
     icon: Network,
+    available: true,
+  },
+  {
+    to: '/loads',
+    label: 'Routine Load',
+    description: 'Streaming ingestion jobs, lag, failures and alerts',
+    icon: Rss,
     available: true,
   },
   {

@@ -4,6 +4,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { PagePlaceholder } from '@/components/PagePlaceholder'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { DEFAULT_ROUTE } from '@/config/navigation'
+import { RoutineLoadView } from '@/features/loads/RoutineLoadView'
 import { TopologyView } from '@/features/topology/TopologyView'
 
 export function App() {
@@ -12,6 +13,7 @@ export function App() {
       <Route path="/" element={<DashboardLayout />}>
         <Route index element={<Navigate to={DEFAULT_ROUTE} replace />} />
         <Route path="topology" element={<TopologyView />} />
+        <Route path="loads" element={<RoutineLoadView />} />
 
         {/* Routes are wired ahead of their features so navigation is complete. */}
         <Route
