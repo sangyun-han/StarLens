@@ -1,5 +1,6 @@
 import { Cpu, HardDrive, Server, TriangleAlert } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { ErrorState } from '@/components/ErrorState'
 import { Card, CardContent } from '@/components/ui/card'
@@ -11,9 +12,10 @@ import type { ClusterNode } from '@/types/topology'
 
 /**
  * Cluster topology dashboard: cluster-level summary on top, then one card per
- * frontend and backend with liveness, role and capacity.
+ * frontend, backend and compute node with liveness, role and capacity.
  */
 export function TopologyView() {
+  const { t } = useTranslation()
   const { data, error, isPending, isError, isFetching, refetch } = useTopology()
 
   if (isPending) return <TopologySkeleton />
@@ -23,7 +25,7 @@ export function TopologyView() {
   if (isError && !data) {
     return (
       <ErrorState
-        title="Could not load cluster topology"
+        title={t('topology.loadError')}
         error={error}
         onRetry={() => void refetch()}
         isRetrying={isFetching}
@@ -35,20 +37,16 @@ export function TopologyView() {
 
   return (
     <div className="flex flex-col gap-6">
-      {isError && (
-        <StaleNotice
-          message="Showing the last successful snapshot — the most recent refresh failed."
-        />
-      )}
+      {isError && <StaleNotice message={t('topology.staleNotice')} />}
 
       <SummaryCards summary={data.summary} runMode={data.runMode} />
 
       <NodeSection
         icon={Server}
-        title="Frontends"
-        subtitle="Metadata, SQL parsing and query planning"
+        title={t('topology.sections.frontends.title')}
+        subtitle={t('topology.sections.frontends.subtitle')}
         nodes={data.frontends}
-        emptyMessage="No frontends reported. SHOW FRONTENDS returned no rows."
+        emptyMessage={t('topology.sections.frontends.empty')}
       />
 
       {/* In shared-data mode the BE section is expected to be empty — hide it
@@ -56,13 +54,13 @@ export function TopologyView() {
       {(data.backends.length > 0 || data.runMode !== 'shared_data') && (
         <NodeSection
           icon={HardDrive}
-          title="Backends"
-          subtitle="Coupled storage and query execution"
+          title={t('topology.sections.backends.title')}
+          subtitle={t('topology.sections.backends.subtitle')}
           nodes={data.backends}
           emptyMessage={
             data.runMode === 'shared_nothing'
-              ? 'No backends registered. The cluster cannot serve queries until a BE joins.'
-              : 'No backends registered.'
+              ? t('topology.sections.backends.empty')
+              : t('topology.sections.backends.emptyNeutral')
           }
         />
       )}
@@ -70,10 +68,10 @@ export function TopologyView() {
       {(data.computeNodes.length > 0 || data.runMode === 'shared_data') && (
         <NodeSection
           icon={Cpu}
-          title="Compute Nodes"
-          subtitle="Stateless query execution over shared storage"
+          title={t('topology.sections.computeNodes.title')}
+          subtitle={t('topology.sections.computeNodes.subtitle')}
           nodes={data.computeNodes}
-          emptyMessage="No compute nodes registered. A shared-data cluster cannot serve queries until a CN joins."
+          emptyMessage={t('topology.sections.computeNodes.empty')}
         />
       )}
     </div>
@@ -95,6 +93,7 @@ function NodeSection({
   nodes,
   emptyMessage,
 }: NodeSectionProps) {
+  const { t } = useTranslation()
   const down = nodes.filter((node) => !node.alive).length
 
   return (
@@ -105,7 +104,7 @@ function NodeSection({
           {title}
         </h2>
         <span className="font-mono text-xs text-muted-foreground tabular-nums">
-          {nodes.length - down}/{nodes.length} alive
+          {t('topology.aliveCount', { alive: nodes.length - down, total: nodes.length })}
         </span>
         <span className="hidden text-xs text-muted-foreground md:inline">
           · {subtitle}

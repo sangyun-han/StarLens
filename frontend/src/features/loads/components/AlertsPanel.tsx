@@ -1,6 +1,7 @@
 import { BellRing, CircleAlert, Info, SendHorizontal, TriangleAlert } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -33,6 +34,7 @@ const SEVERITY_STYLE: Record<AlertSeverity, string> = {
  * webhook channel end to end without waiting for a real incident.
  */
 export function AlertsPanel() {
+  const { t } = useTranslation()
   const { data } = useAlerts()
   const testAlert = useTestAlert()
   const now = useNow(10_000)
@@ -49,11 +51,13 @@ export function AlertsPanel() {
         )
         setTestOutcome(
           failed.length === 0
-            ? 'Delivered to every channel.'
-            : `Failed: ${failed.map(([name, err]) => `${name} (${err})`).join(', ')}`,
+            ? t('alerts.deliveredAll')
+            : t('alerts.deliveryFailed', {
+                list: failed.map(([name, err]) => `${name} (${err})`).join(', '),
+              }),
         )
       },
-      onError: () => setTestOutcome('Could not reach the StarLens API.'),
+      onError: () => setTestOutcome(t('alerts.apiUnreachable')),
     })
   }
 
@@ -62,7 +66,7 @@ export function AlertsPanel() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <BellRing className="size-4 text-muted-foreground" />
-          Recent alerts
+          {t('alerts.recentAlerts')}
         </CardTitle>
         <CardAction>
           <Button
@@ -72,7 +76,7 @@ export function AlertsPanel() {
             disabled={testAlert.isPending}
           >
             <SendHorizontal className="size-3.5" />
-            Test
+            {t('common.test')}
           </Button>
         </CardAction>
       </CardHeader>
@@ -86,7 +90,7 @@ export function AlertsPanel() {
 
         {alerts.length === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">
-            No alerts fired yet — quiet is good.
+            {t('alerts.empty')}
           </p>
         ) : (
           <ul className="flex max-h-160 flex-col gap-1.5 overflow-y-auto">

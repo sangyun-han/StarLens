@@ -6,6 +6,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { App } from '@/App'
 import { createQueryClient } from '@/lib/queryClient'
 
+import './i18n'
 import './index.css'
 
 const container = document.getElementById('root')

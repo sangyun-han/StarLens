@@ -1,5 +1,6 @@
 import { CircleAlert, CirclePause, Rss, TriangleAlert } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { Trans, useTranslation } from 'react-i18next'
 
 import { ErrorState } from '@/components/ErrorState'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,6 +17,7 @@ import type { RoutineLoadSummary } from '@/types/routineload'
  * state, throughput, error rows and approximate lag, plus the alert history.
  */
 export function RoutineLoadView() {
+  const { t } = useTranslation()
   const { data, error, isPending, isError, isFetching, refetch } = useRoutineLoads()
 
   if (isPending) return <RoutineLoadSkeleton />
@@ -23,7 +25,7 @@ export function RoutineLoadView() {
   if (isError && !data) {
     return (
       <ErrorState
-        title="Could not load routine load jobs"
+        title={t('loads.loadError')}
         error={error}
         onRetry={() => void refetch()}
         isRetrying={isFetching}
@@ -35,9 +37,7 @@ export function RoutineLoadView() {
 
   return (
     <div className="flex flex-col gap-6">
-      {isError && (
-        <Notice message="Showing the last successful snapshot — the most recent refresh failed." />
-      )}
+      {isError && <Notice message={t('loads.staleNotice')} />}
       {data.warnings?.map((warning) => (
         <Notice key={warning} message={warning} />
       ))}
@@ -49,7 +49,7 @@ export function RoutineLoadView() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Rss className="size-4 text-muted-foreground" />
-              Jobs
+              {t('loads.jobs')}
               <span className="font-mono text-xs font-normal text-muted-foreground tabular-nums">
                 {data.jobs.length}
               </span>
@@ -58,11 +58,14 @@ export function RoutineLoadView() {
           <CardContent>
             {data.jobs.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">
-                No routine load jobs found in any database. Create one with{' '}
-                <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
-                  CREATE ROUTINE LOAD
-                </code>{' '}
-                to stream data from Kafka or Pulsar.
+                <Trans
+                  i18nKey="loads.empty"
+                  components={{
+                    code: (
+                      <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs" />
+                    ),
+                  }}
+                />
               </p>
             ) : (
               <JobsTable jobs={data.jobs} />
@@ -77,42 +80,48 @@ export function RoutineLoadView() {
 }
 
 function SummaryRow({ summary }: { summary: RoutineLoadSummary }) {
+  const { t } = useTranslation()
+
   return (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <StatCard
         icon={Rss}
-        label="Running"
+        label={t('loads.summary.running')}
         value={`${summary.running}/${summary.total}`}
         hint={
           summary.needSchedule > 0
-            ? `${summary.needSchedule} waiting for a scheduler slot`
-            : 'Jobs actively consuming'
+            ? t('loads.summary.runningHintWaiting', { count: summary.needSchedule })
+            : t('loads.summary.runningHintAll')
         }
         tone={summary.running === summary.total && summary.total > 0 ? 'good' : 'neutral'}
       />
       <StatCard
         icon={CirclePause}
-        label="Paused"
+        label={t('loads.summary.paused')}
         value={formatNumber(summary.paused)}
-        hint={summary.paused > 0 ? 'Resumable — check the reason below' : 'Nothing paused'}
+        hint={
+          summary.paused > 0
+            ? t('loads.summary.pausedHint')
+            : t('loads.summary.pausedHintNone')
+        }
         tone={summary.paused > 0 ? 'bad' : 'good'}
       />
       <StatCard
         icon={CircleAlert}
-        label="Cancelled"
+        label={t('loads.summary.cancelled')}
         value={formatNumber(summary.cancelled)}
         hint={
           summary.cancelled > 0
-            ? 'Terminal — jobs must be recreated'
-            : `${summary.stopped} stopped by operators`
+            ? t('loads.summary.cancelledHint')
+            : t('loads.summary.cancelledHintNone', { count: summary.stopped })
         }
         tone={summary.cancelled > 0 ? 'bad' : 'good'}
       />
       <StatCard
         icon={TriangleAlert}
-        label="Error rows"
+        label={t('loads.summary.errorRows')}
         value={formatNumber(summary.totalErrorRows)}
-        hint="Filtered rows across all jobs"
+        hint={t('loads.summary.errorRowsHint')}
         tone={summary.totalErrorRows > 0 ? 'neutral' : 'good'}
       />
     </div>

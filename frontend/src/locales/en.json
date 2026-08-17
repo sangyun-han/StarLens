@@ -1,0 +1,212 @@
+{
+  "meta": {
+    "name": "English"
+  },
+  "common": {
+    "appName": "StarLens",
+    "appSubtitle": "StarRocks console",
+    "appDescription": "StarRocks management and observability",
+    "retry": "Retry",
+    "test": "Test",
+    "soon": "Soon",
+    "collapse": "Collapse",
+    "expandSidebar": "Expand sidebar",
+    "collapseSidebar": "Collapse sidebar",
+    "changeLanguage": "Change language",
+    "errorLog": "Error log",
+    "refresh": "Refresh cluster data",
+    "pauseAutoRefresh": "Pause auto refresh",
+    "resumeAutoRefresh": "Resume auto refresh",
+    "autoRefreshOn": "Auto refresh on (10s)",
+    "autoRefreshPaused": "Auto refresh paused",
+    "updated": "Updated {{time}}",
+    "noDataYet": "No data yet",
+    "frontends": "Frontends",
+    "backends": "Backends",
+    "compute": "Compute"
+  },
+  "nav": {
+    "topology": {
+      "label": "Topology",
+      "description": "Frontend and backend nodes, liveness and capacity"
+    },
+    "loads": {
+      "label": "Routine Load",
+      "description": "Streaming ingestion jobs, lag, failures and alerts"
+    },
+    "worksheet": {
+      "label": "SQL Worksheet",
+      "description": "Run StarRocks SQL and inspect the query profile"
+    },
+    "lineage": {
+      "label": "Lineage",
+      "description": "Materialized view dependencies as a pipeline graph"
+    },
+    "metrics": {
+      "label": "Metrics",
+      "description": "CPU, memory and query throughput over time"
+    }
+  },
+  "time": {
+    "justNow": "just now",
+    "secondsAgo": "{{count}}s ago",
+    "minutesAgo": "{{count}}m ago",
+    "hoursAgo": "{{count}}h ago",
+    "daysAgo": "{{count}}d ago"
+  },
+  "status": {
+    "clusterHealthy": "Cluster healthy",
+    "clusterUnreachable": "Cluster unreachable",
+    "checkingCluster": "Checking cluster",
+    "statusUnknown": "Status unknown",
+    "noFeLeader": "No FE leader",
+    "nodesDown_one": "{{count}} node down",
+    "nodesDown_other": "{{count}} nodes down",
+    "noBackendsRegistered": "No backends registered"
+  },
+  "nodeStatus": {
+    "alive": "Alive",
+    "down": "Down",
+    "draining": "Draining"
+  },
+  "runMode": {
+    "shared_data": "Shared-data",
+    "shared_nothing": "Shared-nothing",
+    "unknown": "Unknown mode"
+  },
+  "topology": {
+    "loadError": "Could not load cluster topology",
+    "staleNotice": "Showing the last successful snapshot — the most recent refresh failed.",
+    "sections": {
+      "frontends": {
+        "title": "Frontends",
+        "subtitle": "Metadata, SQL parsing and query planning",
+        "empty": "No frontends reported. SHOW FRONTENDS returned no rows."
+      },
+      "backends": {
+        "title": "Backends",
+        "subtitle": "Coupled storage and query execution",
+        "empty": "No backends registered. The cluster cannot serve queries until a BE joins.",
+        "emptyNeutral": "No backends registered."
+      },
+      "computeNodes": {
+        "title": "Compute Nodes",
+        "subtitle": "Stateless query execution over shared storage",
+        "empty": "No compute nodes registered. A shared-data cluster cannot serve queries until a CN joins."
+      }
+    },
+    "aliveCount": "{{alive}}/{{total}} alive",
+    "summary": {
+      "cluster": "Cluster",
+      "healthy": "Healthy",
+      "degraded": "Degraded",
+      "healthyHint": "{{mode}} · all nodes alive with a leader",
+      "degradedHint": "{{mode}} · one or more nodes need attention",
+      "feLeader": "FE leader",
+      "none": "None",
+      "leaderHint": "Serving metadata writes",
+      "noLeaderHint": "No frontend has been elected — metadata writes are blocked",
+      "nodesAlive": "Nodes alive",
+      "feCount": "{{count}} FE",
+      "beCount": "{{count}} BE",
+      "cnCount": "{{count}} CN",
+      "downSuffix": "{{list}} down",
+      "tablets": "Tablets",
+      "tabletsHintSharedData": "Cached across compute nodes",
+      "tabletsHint": "Total across all backends"
+    },
+    "node": {
+      "started": "Started",
+      "heartbeat": "Heartbeat",
+      "tablets": "Tablets",
+      "cores": "Cores",
+      "queries": "Queries",
+      "disk": "Disk",
+      "memory": "Memory",
+      "warehouse": "Warehouse"
+    }
+  },
+  "jobState": {
+    "RUNNING": "Running",
+    "NEED_SCHEDULE": "Scheduling",
+    "PAUSED": "Paused",
+    "CANCELLED": "Cancelled",
+    "STOPPED": "Stopped",
+    "UNKNOWN": "Unknown"
+  },
+  "loads": {
+    "loadError": "Could not load routine load jobs",
+    "staleNotice": "Showing the last successful snapshot — the most recent refresh failed.",
+    "jobs": "Jobs",
+    "empty": "No routine load jobs found in any database. Create one with <code>CREATE ROUTINE LOAD</code> to stream data from Kafka or Pulsar.",
+    "summary": {
+      "running": "Running",
+      "runningHintAll": "Jobs actively consuming",
+      "runningHintWaiting": "{{count}} waiting for a scheduler slot",
+      "paused": "Paused",
+      "pausedHint": "Resumable — check the reason below",
+      "pausedHintNone": "Nothing paused",
+      "cancelled": "Cancelled",
+      "cancelledHint": "Terminal — jobs must be recreated",
+      "cancelledHintNone": "{{count}} stopped by operators",
+      "errorRows": "Error rows",
+      "errorRowsHint": "Filtered rows across all jobs"
+    },
+    "table": {
+      "job": "Job",
+      "state": "State",
+      "source": "Source",
+      "tasks": "Tasks",
+      "loadedRows": "Loaded rows",
+      "errorRows": "Error rows",
+      "lag": "Lag",
+      "errorRowsTooltip": "{{percent}} of {{total}} consumed rows",
+      "lagTooltip": "Approximate messages behind the source log end"
+    }
+  },
+  "alerts": {
+    "recentAlerts": "Recent alerts",
+    "empty": "No alerts fired yet — quiet is good.",
+    "deliveredAll": "Delivered to every channel.",
+    "deliveryFailed": "Failed: {{list}}",
+    "apiUnreachable": "Could not reach the StarLens API."
+  },
+  "errors": {
+    "defaultTitle": "Could not load data",
+    "unexpected": "An unexpected error occurred.",
+    "hints": {
+      "starrocksUnavailable": "Check that STARROCKS_DSN points at a reachable FE query port (9030) and that the user can run SHOW FRONTENDS.",
+      "networkError": "The StarLens API is not responding. Start it with `go run ./cmd/server` in backend/.",
+      "timeout": "Raise STARROCKS_QUERY_TIMEOUT if the cluster is under heavy load."
+    }
+  },
+  "placeholders": {
+    "worksheet": {
+      "title": "SQL Worksheet",
+      "description": "A Monaco-based editor for running StarRocks SQL against the connected cluster.",
+      "planned": [
+        "Monaco editor with StarRocks SQL syntax and schema-aware completion",
+        "Resizable result grid with dynamic columns",
+        "Query profile tab: elapsed time, scanned bytes and rows"
+      ]
+    },
+    "lineage": {
+      "title": "Data Lineage",
+      "description": "Base table to materialized view dependencies rendered as a DAG.",
+      "planned": [
+        "React Flow graph built from information_schema.materialized_views",
+        "Custom nodes coloured by last refresh state",
+        "Last refresh time and staleness per node"
+      ]
+    },
+    "metrics": {
+      "title": "Metrics",
+      "description": "Time-series resource usage per backend node.",
+      "planned": [
+        "ECharts multi-series line chart of CPU usage per BE",
+        "Memory and disk pressure over time",
+        "Query throughput and slow query counts"
+      ]
+    }
+  }
+}

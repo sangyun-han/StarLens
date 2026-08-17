@@ -1,3 +1,5 @@
+import i18n from '@/i18n'
+
 const NUMBER_FORMAT = new Intl.NumberFormat('en-US')
 
 const BYTE_UNITS = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'] as const
@@ -32,8 +34,10 @@ export function formatPercent(
 }
 
 /**
- * Formats an ISO timestamp as a coarse "time ago" label. Used for the freshness
- * indicator, so seconds-level precision is what matters.
+ * Formats an ISO timestamp as a coarse, localized "time ago" label. Used for
+ * the freshness indicator, so seconds-level precision is what matters.
+ * Callers re-render on language change via useTranslation, so the label stays
+ * in sync with the active locale.
  */
 export function formatRelativeTime(
   isoTimestamp: string | undefined,
@@ -45,16 +49,16 @@ export function formatRelativeTime(
   if (Number.isNaN(parsed)) return isoTimestamp
 
   const seconds = Math.max(0, Math.round((now - parsed) / 1000))
-  if (seconds < 5) return 'just now'
-  if (seconds < 60) return `${seconds}s ago`
+  if (seconds < 5) return i18n.t('time.justNow')
+  if (seconds < 60) return i18n.t('time.secondsAgo', { count: seconds })
 
   const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes}m ago`
+  if (minutes < 60) return i18n.t('time.minutesAgo', { count: minutes })
 
   const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
+  if (hours < 24) return i18n.t('time.hoursAgo', { count: hours })
 
-  return `${Math.floor(hours / 24)}d ago`
+  return i18n.t('time.daysAgo', { count: Math.floor(hours / 24) })
 }
 
 /**

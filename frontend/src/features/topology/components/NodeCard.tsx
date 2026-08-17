@@ -1,5 +1,6 @@
 import { Boxes, Cpu, Crown, Server } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { NodeStatusBadge } from '@/features/topology/components/NodeStatusBadge'
@@ -78,9 +79,7 @@ export function NodeCard({ node }: { node: ClusterNode }) {
             </span>
           )}
           {node.warehouse && (
-            <span className="truncate text-muted-foreground" title="Warehouse">
-              {node.warehouse}
-            </span>
+            <WarehouseTag warehouse={node.warehouse} />
           )}
           {node.version && (
             <span className="truncate text-muted-foreground">{node.version}</span>
@@ -103,16 +102,27 @@ export function NodeCard({ node }: { node: ClusterNode }) {
   )
 }
 
+function WarehouseTag({ warehouse }: { warehouse: string }) {
+  const { t } = useTranslation()
+  return (
+    <span className="truncate text-muted-foreground" title={t('topology.node.warehouse')}>
+      {warehouse}
+    </span>
+  )
+}
+
 function FrontendFacts({ node }: { node: ClusterNode }) {
+  const { t } = useTranslation()
   return (
     <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
-      <Fact label="Started" value={node.startTime} />
-      <Fact label="Heartbeat" value={node.lastHeartbeat} />
+      <Fact label={t('topology.node.started')} value={node.startTime} />
+      <Fact label={t('topology.node.heartbeat')} value={node.lastHeartbeat} />
     </dl>
   )
 }
 
 function BackendFacts({ node }: { node: ClusterNode }) {
+  const { t } = useTranslation()
   const hasCapacity = node.totalBytes !== undefined && node.totalBytes > 0
 
   return (
@@ -120,24 +130,24 @@ function BackendFacts({ node }: { node: ClusterNode }) {
       <div className="grid grid-cols-3 gap-2">
         <Metric
           icon={Boxes}
-          label="Tablets"
+          label={t('topology.node.tablets')}
           value={formatNumber(node.tabletNum)}
         />
         <Metric
           icon={Cpu}
-          label="Cores"
+          label={t('topology.node.cores')}
           value={formatNumber(node.cpuCores)}
         />
         <Metric
           icon={Server}
-          label="Queries"
+          label={t('topology.node.queries')}
           value={formatNumber(node.runningQueries)}
         />
       </div>
 
       <div className="flex flex-col gap-2">
         <UsageBar
-          label="Disk"
+          label={t('topology.node.disk')}
           percent={node.diskUsedPercent}
           caption={
             hasCapacity
@@ -145,7 +155,7 @@ function BackendFacts({ node }: { node: ClusterNode }) {
               : undefined
           }
         />
-        <UsageBar label="Memory" percent={node.memUsedPercent} />
+        <UsageBar label={t('topology.node.memory')} percent={node.memUsedPercent} />
       </div>
     </div>
   )

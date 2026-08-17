@@ -3,9 +3,10 @@ import type { LucideIcon } from 'lucide-react'
 
 export interface NavItem {
   to: string
-  label: string
-  /** Shown as the page subtitle in the header. */
-  description: string
+  /** i18n key for the menu label, e.g. "nav.topology.label". */
+  labelKey: string
+  /** i18n key for the page subtitle shown in the header. */
+  descriptionKey: string
   icon: LucideIcon
   /** Placeholder routes render a "planned" state instead of a dead link. */
   available: boolean
@@ -14,36 +15,36 @@ export interface NavItem {
 export const NAV_ITEMS: readonly NavItem[] = [
   {
     to: '/topology',
-    label: 'Topology',
-    description: 'Frontend and backend nodes, liveness and capacity',
+    labelKey: 'nav.topology.label',
+    descriptionKey: 'nav.topology.description',
     icon: Network,
     available: true,
   },
   {
     to: '/loads',
-    label: 'Routine Load',
-    description: 'Streaming ingestion jobs, lag, failures and alerts',
+    labelKey: 'nav.loads.label',
+    descriptionKey: 'nav.loads.description',
     icon: Rss,
     available: true,
   },
   {
     to: '/worksheet',
-    label: 'SQL Worksheet',
-    description: 'Run StarRocks SQL and inspect the query profile',
+    labelKey: 'nav.worksheet.label',
+    descriptionKey: 'nav.worksheet.description',
     icon: SquareTerminal,
     available: false,
   },
   {
     to: '/lineage',
-    label: 'Lineage',
-    description: 'Materialized view dependencies as a pipeline graph',
+    labelKey: 'nav.lineage.label',
+    descriptionKey: 'nav.lineage.description',
     icon: Workflow,
     available: false,
   },
   {
     to: '/metrics',
-    label: 'Metrics',
-    description: 'CPU, memory and query throughput over time',
+    labelKey: 'nav.metrics.label',
+    descriptionKey: 'nav.metrics.description',
     icon: Activity,
     available: false,
   },

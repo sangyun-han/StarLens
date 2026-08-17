@@ -1,4 +1,5 @@
 import { CircleAlert, CircleCheck, Loader, TriangleAlert } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { cn } from '@/lib/utils'
 import type { TopologySummary } from '@/types/topology'
@@ -36,7 +37,8 @@ export function ClusterStatusPill({
   isUnreachable = false,
   className,
 }: ClusterStatusPillProps) {
-  const { tone, label } = resolveTone({ summary, isLoading, isUnreachable })
+  const { t } = useTranslation()
+  const { tone, labelKey, count } = resolveTone({ summary, isLoading, isUnreachable })
   const Icon = TONE_ICONS[tone]
 
   return (
@@ -48,7 +50,7 @@ export function ClusterStatusPill({
       )}
     >
       <Icon className={cn('size-3.5', tone === 'loading' && 'animate-spin')} />
-      {label}
+      {t(labelKey, { count })}
     </span>
   )
 }
@@ -59,28 +61,27 @@ function resolveTone({
   isUnreachable,
 }: Pick<ClusterStatusPillProps, 'summary' | 'isLoading' | 'isUnreachable'>): {
   tone: Tone
-  label: string
+  labelKey: string
+  count?: number
 } {
-  if (isUnreachable) return { tone: 'degraded', label: 'Cluster unreachable' }
+  if (isUnreachable) return { tone: 'degraded', labelKey: 'status.clusterUnreachable' }
   if (!summary) {
     return isLoading
-      ? { tone: 'loading', label: 'Checking cluster' }
-      : { tone: 'unknown', label: 'Status unknown' }
+      ? { tone: 'loading', labelKey: 'status.checkingCluster' }
+      : { tone: 'unknown', labelKey: 'status.statusUnknown' }
   }
-  if (summary.healthy) return { tone: 'healthy', label: 'Cluster healthy' }
+  if (summary.healthy) return { tone: 'healthy', labelKey: 'status.clusterHealthy' }
 
-  if (!summary.leaderHost) return { tone: 'degraded', label: 'No FE leader' }
+  if (!summary.leaderHost) return { tone: 'degraded', labelKey: 'status.noFeLeader' }
 
   const down =
     summary.frontendTotal -
     summary.frontendAlive +
-    (summary.backendTotal - summary.backendAlive)
+    (summary.backendTotal - summary.backendAlive) +
+    (summary.computeTotal - summary.computeAlive)
 
   if (down > 0) {
-    return {
-      tone: 'degraded',
-      label: `${down} node${down === 1 ? '' : 's'} down`,
-    }
+    return { tone: 'degraded', labelKey: 'status.nodesDown', count: down }
   }
-  return { tone: 'unknown', label: 'No backends registered' }
+  return { tone: 'unknown', labelKey: 'status.noBackendsRegistered' }
 }

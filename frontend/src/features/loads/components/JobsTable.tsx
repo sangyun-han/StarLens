@@ -1,4 +1,5 @@
 import { ExternalLink } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import {
   Table,
@@ -17,18 +18,20 @@ import type { RoutineLoadJob } from '@/types/routineload'
 const ERROR_RATIO_HIGHLIGHT = 0.01
 
 export function JobsTable({ jobs }: { jobs: RoutineLoadJob[] }) {
+  const { t } = useTranslation()
+
   return (
     <div className="overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Job</TableHead>
-            <TableHead>State</TableHead>
-            <TableHead>Source</TableHead>
-            <TableHead className="text-right">Tasks</TableHead>
-            <TableHead className="text-right">Loaded rows</TableHead>
-            <TableHead className="text-right">Error rows</TableHead>
-            <TableHead className="text-right">Lag</TableHead>
+            <TableHead>{t('loads.table.job')}</TableHead>
+            <TableHead>{t('loads.table.state')}</TableHead>
+            <TableHead>{t('loads.table.source')}</TableHead>
+            <TableHead className="text-right">{t('loads.table.tasks')}</TableHead>
+            <TableHead className="text-right">{t('loads.table.loadedRows')}</TableHead>
+            <TableHead className="text-right">{t('loads.table.errorRows')}</TableHead>
+            <TableHead className="text-right">{t('loads.table.lag')}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -42,6 +45,7 @@ export function JobsTable({ jobs }: { jobs: RoutineLoadJob[] }) {
 }
 
 function JobRow({ job }: { job: RoutineLoadJob }) {
+  const { t } = useTranslation()
   const stats = job.statistics
   const errorRatio =
     stats && stats.totalRows > 0 ? stats.errorRows / stats.totalRows : 0
@@ -79,7 +83,10 @@ function JobRow({ job }: { job: RoutineLoadJob }) {
           )}
           title={
             stats && stats.totalRows > 0
-              ? `${formatPercent(errorRatio * 100, 2)} of ${formatNumber(stats.totalRows)} consumed rows`
+              ? t('loads.table.errorRowsTooltip', {
+                  percent: formatPercent(errorRatio * 100, 2),
+                  total: formatNumber(stats.totalRows),
+                })
               : undefined
           }
         >
@@ -87,7 +94,7 @@ function JobRow({ job }: { job: RoutineLoadJob }) {
         </TableCell>
         <TableCell
           className="text-right font-mono text-xs tabular-nums"
-          title={job.offsetLag !== undefined ? 'Approximate messages behind the source log end' : undefined}
+          title={job.offsetLag !== undefined ? t('loads.table.lagTooltip') : undefined}
         >
           {job.offsetLag !== undefined ? formatNumber(job.offsetLag) : '—'}
         </TableCell>
@@ -107,7 +114,7 @@ function JobRow({ job }: { job: RoutineLoadJob }) {
                   className="inline-flex w-fit items-center gap-1 text-xs text-primary hover:underline"
                 >
                   <ExternalLink className="size-3" />
-                  Error log
+                  {t('common.errorLog')}
                 </a>
               )}
             </div>

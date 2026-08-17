@@ -1,5 +1,6 @@
 import { Boxes, Crown, Layers, Server } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { Card, CardContent } from '@/components/ui/card'
 import { runModeLabel } from '@/features/topology/runMode'
@@ -28,66 +29,74 @@ export function SummaryCards({
   summary: TopologySummary
   runMode: RunMode
 }) {
+  const { t } = useTranslation()
+
   const feDown = summary.frontendTotal - summary.frontendAlive
   const beDown = summary.backendTotal - summary.backendAlive
   const cnDown = summary.computeTotal - summary.computeAlive
   const totalDown = feDown + beDown + cnDown
 
-  const aliveParts = [`${summary.frontendTotal} FE`]
+  const aliveParts = [t('topology.summary.feCount', { count: summary.frontendTotal })]
   if (summary.backendTotal > 0 || runMode !== 'shared_data') {
-    aliveParts.push(`${summary.backendTotal} BE`)
+    aliveParts.push(t('topology.summary.beCount', { count: summary.backendTotal }))
   }
   if (summary.computeTotal > 0 || runMode === 'shared_data') {
-    aliveParts.push(`${summary.computeTotal} CN`)
+    aliveParts.push(t('topology.summary.cnCount', { count: summary.computeTotal }))
   }
 
   const downParts = [
-    feDown > 0 && `${feDown} FE`,
-    beDown > 0 && `${beDown} BE`,
-    cnDown > 0 && `${cnDown} CN`,
+    feDown > 0 && t('topology.summary.feCount', { count: feDown }),
+    beDown > 0 && t('topology.summary.beCount', { count: beDown }),
+    cnDown > 0 && t('topology.summary.cnCount', { count: cnDown }),
   ].filter(Boolean)
+
+  const mode = runModeLabel(t, runMode)
 
   return (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <StatCard
         icon={Layers}
-        label="Cluster"
-        value={summary.healthy ? 'Healthy' : 'Degraded'}
+        label={t('topology.summary.cluster')}
+        value={summary.healthy ? t('topology.summary.healthy') : t('topology.summary.degraded')}
         hint={
           summary.healthy
-            ? `${runModeLabel(runMode)} · all nodes alive with a leader`
-            : `${runModeLabel(runMode)} · one or more nodes need attention`
+            ? t('topology.summary.healthyHint', { mode })
+            : t('topology.summary.degradedHint', { mode })
         }
         tone={summary.healthy ? 'good' : 'bad'}
       />
       <StatCard
         icon={Crown}
-        label="FE leader"
-        value={summary.leaderHost || 'None'}
+        label={t('topology.summary.feLeader')}
+        value={summary.leaderHost || t('topology.summary.none')}
         hint={
           summary.leaderHost
-            ? 'Serving metadata writes'
-            : 'No frontend has been elected — metadata writes are blocked'
+            ? t('topology.summary.leaderHint')
+            : t('topology.summary.noLeaderHint')
         }
         tone={summary.leaderHost ? 'neutral' : 'bad'}
         mono
       />
       <StatCard
         icon={Server}
-        label="Nodes alive"
+        label={t('topology.summary.nodesAlive')}
         value={`${summary.frontendAlive + summary.backendAlive + summary.computeAlive}/${summary.frontendTotal + summary.backendTotal + summary.computeTotal}`}
-        hint={totalDown === 0 ? aliveParts.join(' · ') : `${downParts.join(', ')} down`}
+        hint={
+          totalDown === 0
+            ? aliveParts.join(' · ')
+            : t('topology.summary.downSuffix', { list: downParts.join(', ') })
+        }
         tone={totalDown === 0 ? 'good' : 'bad'}
         mono
       />
       <StatCard
         icon={Boxes}
-        label="Tablets"
+        label={t('topology.summary.tablets')}
         value={formatNumber(summary.tabletTotal)}
         hint={
           runMode === 'shared_data'
-            ? 'Cached across compute nodes'
-            : 'Total across all backends'
+            ? t('topology.summary.tabletsHintSharedData')
+            : t('topology.summary.tabletsHint')
         }
         tone="neutral"
         mono

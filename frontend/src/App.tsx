@@ -1,4 +1,6 @@
 import { Activity, SquareTerminal, Workflow } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Navigate, Route, Routes } from 'react-router-dom'
 
 import { PagePlaceholder } from '@/components/PagePlaceholder'
@@ -18,52 +20,42 @@ export function App() {
         {/* Routes are wired ahead of their features so navigation is complete. */}
         <Route
           path="worksheet"
-          element={
-            <PagePlaceholder
-              icon={SquareTerminal}
-              title="SQL Worksheet"
-              description="A Monaco-based editor for running StarRocks SQL against the connected cluster."
-              planned={[
-                'Monaco editor with StarRocks SQL syntax and schema-aware completion',
-                'Resizable result grid with dynamic columns',
-                'Query profile tab: elapsed time, scanned bytes and rows',
-              ]}
-            />
-          }
+          element={<PlaceholderRoute page="worksheet" icon={SquareTerminal} />}
         />
         <Route
           path="lineage"
-          element={
-            <PagePlaceholder
-              icon={Workflow}
-              title="Data Lineage"
-              description="Base table to materialized view dependencies rendered as a DAG."
-              planned={[
-                'React Flow graph built from information_schema.materialized_views',
-                'Custom nodes coloured by last refresh state',
-                'Last refresh time and staleness per node',
-              ]}
-            />
-          }
+          element={<PlaceholderRoute page="lineage" icon={Workflow} />}
         />
         <Route
           path="metrics"
-          element={
-            <PagePlaceholder
-              icon={Activity}
-              title="Metrics"
-              description="Time-series resource usage per backend node."
-              planned={[
-                'ECharts multi-series line chart of CPU usage per BE',
-                'Memory and disk pressure over time',
-                'Query throughput and slow query counts',
-              ]}
-            />
-          }
+          element={<PlaceholderRoute page="metrics" icon={Activity} />}
         />
 
         <Route path="*" element={<Navigate to={DEFAULT_ROUTE} replace />} />
       </Route>
     </Routes>
+  )
+}
+
+/** Localized placeholder content for routes whose feature is not built yet. */
+function PlaceholderRoute({
+  page,
+  icon,
+}: {
+  page: 'worksheet' | 'lineage' | 'metrics'
+  icon: LucideIcon
+}) {
+  const { t } = useTranslation()
+  const planned = t(`placeholders.${page}.planned`, {
+    returnObjects: true,
+  }) as string[]
+
+  return (
+    <PagePlaceholder
+      icon={icon}
+      title={t(`placeholders.${page}.title`)}
+      description={t(`placeholders.${page}.description`)}
+      planned={planned}
+    />
   )
 }

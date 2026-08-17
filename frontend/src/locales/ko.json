@@ -1,0 +1,211 @@
+{
+  "meta": {
+    "name": "한국어"
+  },
+  "common": {
+    "appName": "StarLens",
+    "appSubtitle": "StarRocks 콘솔",
+    "appDescription": "StarRocks 관리 및 관측성",
+    "retry": "재시도",
+    "test": "테스트",
+    "soon": "예정",
+    "collapse": "접기",
+    "expandSidebar": "사이드바 펼치기",
+    "collapseSidebar": "사이드바 접기",
+    "changeLanguage": "언어 변경",
+    "errorLog": "에러 로그",
+    "refresh": "클러스터 데이터 새로고침",
+    "pauseAutoRefresh": "자동 새로고침 일시정지",
+    "resumeAutoRefresh": "자동 새로고침 재개",
+    "autoRefreshOn": "자동 새로고침 켜짐 (10초)",
+    "autoRefreshPaused": "자동 새로고침 일시정지됨",
+    "updated": "{{time}} 갱신",
+    "noDataYet": "데이터 없음",
+    "frontends": "프론트엔드",
+    "backends": "백엔드",
+    "compute": "컴퓨트"
+  },
+  "nav": {
+    "topology": {
+      "label": "토폴로지",
+      "description": "프론트엔드·백엔드 노드의 생존 상태와 용량"
+    },
+    "loads": {
+      "label": "Routine Load",
+      "description": "스트리밍 적재 잡의 지연, 실패, 알림"
+    },
+    "worksheet": {
+      "label": "SQL 워크시트",
+      "description": "StarRocks SQL 실행 및 쿼리 프로파일 확인"
+    },
+    "lineage": {
+      "label": "리니지",
+      "description": "Materialized View 의존성 파이프라인 그래프"
+    },
+    "metrics": {
+      "label": "메트릭",
+      "description": "시간별 CPU, 메모리, 쿼리 처리량"
+    }
+  },
+  "time": {
+    "justNow": "방금 전",
+    "secondsAgo": "{{count}}초 전",
+    "minutesAgo": "{{count}}분 전",
+    "hoursAgo": "{{count}}시간 전",
+    "daysAgo": "{{count}}일 전"
+  },
+  "status": {
+    "clusterHealthy": "클러스터 정상",
+    "clusterUnreachable": "클러스터 연결 불가",
+    "checkingCluster": "클러스터 확인 중",
+    "statusUnknown": "상태 알 수 없음",
+    "noFeLeader": "FE 리더 없음",
+    "nodesDown_other": "노드 {{count}}대 다운",
+    "noBackendsRegistered": "등록된 백엔드 없음"
+  },
+  "nodeStatus": {
+    "alive": "정상",
+    "down": "다운",
+    "draining": "해제 중"
+  },
+  "runMode": {
+    "shared_data": "Shared-data",
+    "shared_nothing": "Shared-nothing",
+    "unknown": "모드 알 수 없음"
+  },
+  "topology": {
+    "loadError": "클러스터 토폴로지를 불러오지 못했습니다",
+    "staleNotice": "마지막으로 성공한 스냅샷을 표시 중입니다 — 최근 새로고침이 실패했습니다.",
+    "sections": {
+      "frontends": {
+        "title": "프론트엔드",
+        "subtitle": "메타데이터, SQL 파싱, 쿼리 플래닝",
+        "empty": "보고된 프론트엔드가 없습니다. SHOW FRONTENDS 결과가 비어 있습니다."
+      },
+      "backends": {
+        "title": "백엔드",
+        "subtitle": "저장과 쿼리 실행 결합형",
+        "empty": "등록된 백엔드가 없습니다. BE가 합류하기 전까지 클러스터는 쿼리를 처리할 수 없습니다.",
+        "emptyNeutral": "등록된 백엔드가 없습니다."
+      },
+      "computeNodes": {
+        "title": "컴퓨트 노드",
+        "subtitle": "공유 스토리지 기반 무상태 쿼리 실행",
+        "empty": "등록된 컴퓨트 노드가 없습니다. CN이 합류하기 전까지 shared-data 클러스터는 쿼리를 처리할 수 없습니다."
+      }
+    },
+    "aliveCount": "{{alive}}/{{total}} 정상",
+    "summary": {
+      "cluster": "클러스터",
+      "healthy": "정상",
+      "degraded": "성능 저하",
+      "healthyHint": "{{mode}} · 리더 존재, 전체 노드 정상",
+      "degradedHint": "{{mode}} · 확인이 필요한 노드가 있습니다",
+      "feLeader": "FE 리더",
+      "none": "없음",
+      "leaderHint": "메타데이터 쓰기 담당",
+      "noLeaderHint": "선출된 프론트엔드가 없습니다 — 메타데이터 쓰기가 차단됩니다",
+      "nodesAlive": "정상 노드",
+      "feCount": "FE {{count}}",
+      "beCount": "BE {{count}}",
+      "cnCount": "CN {{count}}",
+      "downSuffix": "{{list}} 다운",
+      "tablets": "태블릿",
+      "tabletsHintSharedData": "컴퓨트 노드에 캐시된 수량",
+      "tabletsHint": "전체 백엔드 합계"
+    },
+    "node": {
+      "started": "시작 시각",
+      "heartbeat": "하트비트",
+      "tablets": "태블릿",
+      "cores": "코어",
+      "queries": "쿼리",
+      "disk": "디스크",
+      "memory": "메모리",
+      "warehouse": "웨어하우스"
+    }
+  },
+  "jobState": {
+    "RUNNING": "실행 중",
+    "NEED_SCHEDULE": "스케줄 대기",
+    "PAUSED": "일시정지",
+    "CANCELLED": "취소됨",
+    "STOPPED": "중지됨",
+    "UNKNOWN": "알 수 없음"
+  },
+  "loads": {
+    "loadError": "Routine Load 잡을 불러오지 못했습니다",
+    "staleNotice": "마지막으로 성공한 스냅샷을 표시 중입니다 — 최근 새로고침이 실패했습니다.",
+    "jobs": "잡 목록",
+    "empty": "어떤 데이터베이스에도 Routine Load 잡이 없습니다. <code>CREATE ROUTINE LOAD</code>로 Kafka·Pulsar 스트리밍 적재를 시작하세요.",
+    "summary": {
+      "running": "실행 중",
+      "runningHintAll": "활발히 소비 중인 잡",
+      "runningHintWaiting": "{{count}}개가 스케줄러 슬롯 대기 중",
+      "paused": "일시정지",
+      "pausedHint": "재개 가능 — 아래 사유를 확인하세요",
+      "pausedHintNone": "일시정지된 잡 없음",
+      "cancelled": "취소됨",
+      "cancelledHint": "종료 상태 — 잡을 다시 생성해야 합니다",
+      "cancelledHintNone": "운영자가 중지한 잡 {{count}}개",
+      "errorRows": "에러 행",
+      "errorRowsHint": "전체 잡에서 필터링된 행 수"
+    },
+    "table": {
+      "job": "잡",
+      "state": "상태",
+      "source": "소스",
+      "tasks": "태스크",
+      "loadedRows": "적재 행",
+      "errorRows": "에러 행",
+      "lag": "지연",
+      "errorRowsTooltip": "소비한 {{total}}행 중 {{percent}}",
+      "lagTooltip": "소스 로그 끝 기준 근사 지연 메시지 수"
+    }
+  },
+  "alerts": {
+    "recentAlerts": "최근 알림",
+    "empty": "발생한 알림이 없습니다 — 조용한 게 좋은 겁니다.",
+    "deliveredAll": "모든 채널에 전송되었습니다.",
+    "deliveryFailed": "실패: {{list}}",
+    "apiUnreachable": "StarLens API에 연결할 수 없습니다."
+  },
+  "errors": {
+    "defaultTitle": "데이터를 불러오지 못했습니다",
+    "unexpected": "예상치 못한 오류가 발생했습니다.",
+    "hints": {
+      "starrocksUnavailable": "STARROCKS_DSN이 접근 가능한 FE 쿼리 포트(9030)를 가리키는지, 해당 사용자가 SHOW FRONTENDS를 실행할 수 있는지 확인하세요.",
+      "networkError": "StarLens API가 응답하지 않습니다. backend/ 디렉토리에서 `go run ./cmd/server`로 시작하세요.",
+      "timeout": "클러스터 부하가 높다면 STARROCKS_QUERY_TIMEOUT을 늘려보세요."
+    }
+  },
+  "placeholders": {
+    "worksheet": {
+      "title": "SQL 워크시트",
+      "description": "연결된 클러스터에 StarRocks SQL을 실행하는 Monaco 기반 에디터.",
+      "planned": [
+        "StarRocks SQL 문법과 스키마 인지 자동완성을 갖춘 Monaco 에디터",
+        "동적 컬럼을 지원하는 크기 조절형 결과 그리드",
+        "쿼리 프로파일 탭: 소요 시간, 스캔 바이트·행 수"
+      ]
+    },
+    "lineage": {
+      "title": "데이터 리니지",
+      "description": "베이스 테이블과 Materialized View 의존성을 DAG로 렌더링합니다.",
+      "planned": [
+        "information_schema.materialized_views 기반 React Flow 그래프",
+        "마지막 리프레시 상태에 따라 색상이 바뀌는 커스텀 노드",
+        "노드별 마지막 리프레시 시각과 신선도"
+      ]
+    },
+    "metrics": {
+      "title": "메트릭",
+      "description": "백엔드 노드별 시계열 리소스 사용량.",
+      "planned": [
+        "BE별 CPU 사용률 ECharts 멀티 라인 차트",
+        "시간에 따른 메모리·디스크 압박 추이",
+        "쿼리 처리량과 슬로우 쿼리 수"
+      ]
+    }
+  }
+}

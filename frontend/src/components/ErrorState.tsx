@@ -1,4 +1,6 @@
 import { RefreshCw, TriangleAlert } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -14,15 +16,19 @@ interface ErrorStateProps {
 /**
  * Failure card for a whole page region. It shows the underlying cause verbatim,
  * because "dial tcp 10.0.0.1:9030: connection refused" is the answer an operator
- * is looking for.
+ * is looking for. API-provided messages stay untranslated by design — they are
+ * operator-facing diagnostics from the backend; the guidance hints are ours and
+ * localized.
  */
 export function ErrorState({
-  title = 'Could not load data',
+  title,
   error,
   onRetry,
   isRetrying = false,
 }: ErrorStateProps) {
-  const { message, detail, hint } = describe(error)
+  const { t } = useTranslation()
+  const { message, detail, hint } = describe(t, error)
+  title ??= t('errors.defaultTitle')
 
   return (
     <Card className="border-destructive/30 ring-destructive/20">
@@ -50,7 +56,7 @@ export function ErrorState({
         {onRetry && (
           <Button variant="outline" size="sm" onClick={onRetry} disabled={isRetrying}>
             <RefreshCw className={isRetrying ? 'animate-spin' : undefined} />
-            Retry
+            {t('common.retry')}
           </Button>
         )}
       </CardContent>
@@ -58,7 +64,10 @@ export function ErrorState({
   )
 }
 
-function describe(error: unknown): {
+function describe(
+  t: TFunction,
+  error: unknown,
+): {
   message: string
   detail?: string
   hint?: string
@@ -67,22 +76,22 @@ function describe(error: unknown): {
     return {
       message: error.message,
       detail: error.detail,
-      hint: hintFor(error.code),
+      hint: hintFor(t, error.code),
     }
   }
   if (error instanceof Error) return { message: error.message }
-  return { message: 'An unexpected error occurred.' }
+  return { message: t('errors.unexpected') }
 }
 
-function hintFor(code: string): string | undefined {
+function hintFor(t: TFunction, code: string): string | undefined {
   switch (code) {
     case 'starrocks_unavailable':
     case 'starrocks_unreachable':
-      return 'Check that STARROCKS_DSN points at a reachable FE query port (9030) and that the user can run SHOW FRONTENDS.'
+      return t('errors.hints.starrocksUnavailable')
     case 'network_error':
-      return 'The StarLens API is not responding. Start it with `go run ./cmd/server` in backend/.'
+      return t('errors.hints.networkError')
     case 'timeout':
-      return 'Raise STARROCKS_QUERY_TIMEOUT if the cluster is under heavy load.'
+      return t('errors.hints.timeout')
     default:
       return undefined
   }
