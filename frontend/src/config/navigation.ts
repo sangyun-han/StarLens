@@ -32,7 +32,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     labelKey: 'nav.worksheet.label',
     descriptionKey: 'nav.worksheet.description',
     icon: SquareTerminal,
-    available: false,
+    available: true,
   },
   {
     to: '/lineage',

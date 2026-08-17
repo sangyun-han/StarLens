@@ -11,6 +11,10 @@ interface AppState {
   currentDatabase: string | null
   setCurrentDatabase: (database: string | null) => void
 
+  /** Worksheet editor content, persisted so a reload never loses a query. */
+  worksheetSql: string
+  setWorksheetSql: (sql: string) => void
+
   /** Whether cluster queries poll on an interval. */
   autoRefresh: boolean
   toggleAutoRefresh: () => void
@@ -31,6 +35,9 @@ export const useAppStore = create<AppState>()(
 
       currentDatabase: null,
       setCurrentDatabase: (database) => set({ currentDatabase: database }),
+
+      worksheetSql: 'SHOW DATABASES;',
+      setWorksheetSql: (sql) => set({ worksheetSql: sql }),
 
       autoRefresh: true,
       toggleAutoRefresh: () =>

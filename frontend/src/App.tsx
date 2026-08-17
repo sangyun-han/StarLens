@@ -1,13 +1,19 @@
-import { Activity, SquareTerminal, Workflow } from 'lucide-react'
+import { Activity, Workflow } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { Suspense, lazy } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Navigate, Route, Routes } from 'react-router-dom'
 
 import { PagePlaceholder } from '@/components/PagePlaceholder'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
+import { Skeleton } from '@/components/ui/skeleton'
 import { DEFAULT_ROUTE } from '@/config/navigation'
 import { RoutineLoadView } from '@/features/loads/RoutineLoadView'
 import { TopologyView } from '@/features/topology/TopologyView'
+
+// Monaco is heavy; the worksheet (and the editor with it) loads on demand so
+// the monitoring pages stay in a lean main bundle.
+const SqlWorksheet = lazy(() => import('@/features/worksheet/SqlWorksheet'))
 
 export function App() {
   return (
@@ -17,11 +23,16 @@ export function App() {
         <Route path="topology" element={<TopologyView />} />
         <Route path="loads" element={<RoutineLoadView />} />
 
-        {/* Routes are wired ahead of their features so navigation is complete. */}
         <Route
           path="worksheet"
-          element={<PlaceholderRoute page="worksheet" icon={SquareTerminal} />}
+          element={
+            <Suspense fallback={<Skeleton className="h-[calc(100vh-8.5rem)]" />}>
+              <SqlWorksheet />
+            </Suspense>
+          }
         />
+
+        {/* Routes are wired ahead of their features so navigation is complete. */}
         <Route
           path="lineage"
           element={<PlaceholderRoute page="lineage" icon={Workflow} />}
@@ -42,7 +53,7 @@ function PlaceholderRoute({
   page,
   icon,
 }: {
-  page: 'worksheet' | 'lineage' | 'metrics'
+  page: 'lineage' | 'metrics'
   icon: LucideIcon
 }) {
   const { t } = useTranslation()

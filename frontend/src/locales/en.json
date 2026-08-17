@@ -180,16 +180,28 @@
       "timeout": "Raise STARROCKS_QUERY_TIMEOUT if the cluster is under heavy load."
     }
   },
+  "worksheet": {
+    "run": "Run",
+    "running": "Running…",
+    "database": "Database",
+    "defaultDatabase": "Default database",
+    "shortcutHint": "⌘⏎ / Ctrl+Enter to run",
+    "results": "Results",
+    "emptyPrompt": "Write a statement above and press Run to see results.",
+    "noRows": "The statement returned no rows.",
+    "resultSummary": "{{rows}} rows · {{elapsed}} ms",
+    "truncatedNotice": "Results are truncated to the first {{count}} rows. Add a LIMIT or filter to narrow the result.",
+    "profile": {
+      "title": "Profile",
+      "elapsed": "Elapsed",
+      "rows": "Rows returned",
+      "rowsTruncated": "{{count}}+ (truncated)",
+      "rowLimit": "Row limit",
+      "database": "Database",
+      "statement": "Executed statement"
+    }
+  },
   "placeholders": {
-    "worksheet": {
-      "title": "SQL Worksheet",
-      "description": "A Monaco-based editor for running StarRocks SQL against the connected cluster.",
-      "planned": [
-        "Monaco editor with StarRocks SQL syntax and schema-aware completion",
-        "Resizable result grid with dynamic columns",
-        "Query profile tab: elapsed time, scanned bytes and rows"
-      ]
-    },
     "lineage": {
       "title": "Data Lineage",
       "description": "Base table to materialized view dependencies rendered as a DAG.",

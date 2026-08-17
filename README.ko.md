@@ -90,6 +90,8 @@ docker run -p 9030:9030 -p 8030:8030 -p 8040:8040 \
 | `GET`  | `/api/v1/loads/routine`     | 전체 데이터베이스의 Routine Load 잡: 상태, 통계, 근사 오프셋 지연. |
 | `GET`  | `/api/v1/alerts`            | 발생한 알림 히스토리 (인메모리, 최신순).           |
 | `POST` | `/api/v1/alerts/test`       | 모든 노티파이어로 테스트 알림을 발사하고 채널별 결과를 보고. |
+| `POST` | `/api/v1/query`             | 워크시트 문장 하나를 실행. 기본은 읽기 전용(`QUERY_READ_ONLY`)이며 행 수는 `QUERY_MAX_ROWS`로 제한. |
+| `GET`  | `/api/v1/databases`         | 워크시트의 스코프 선택기용 데이터베이스 목록.       |
 
 실패 응답은 단일 envelope을 공유하므로 UI가 일관되게 렌더링할 수 있습니다:
 
@@ -203,7 +205,7 @@ make check   # 위 전부 — CI가 실행하는 것
 - [x] Routine Load 모니터링 — 잡 상태, 에러 행, 근사 지연
 - [x] 알림 — 규칙 평가 루프, log + webhook 노티파이어, 테스트 발사 엔드포인트
 - [x] UI 다국어 지원 (영어·한국어, 단일 파일로 언어 추가)
-- [ ] SQL 워크시트 — Monaco 에디터, 결과 그리드, 쿼리 프로파일
+- [x] SQL 워크시트 — Monaco 에디터, 데이터베이스 스코프, 결과 그리드, 실행 프로파일
 - [ ] 데이터 리니지 — React Flow 기반 베이스 테이블 ↔ Materialized View DAG
 - [ ] 메트릭 — ECharts 기반 백엔드별 CPU/메모리 시계열 (Prometheus 클라이언트)
 - [ ] 추가 노티파이어 채널 (이메일, PagerDuty) & 알림 규칙 설정 UI

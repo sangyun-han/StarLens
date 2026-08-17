@@ -179,16 +179,28 @@
       "timeout": "클러스터 부하가 높다면 STARROCKS_QUERY_TIMEOUT을 늘려보세요."
     }
   },
+  "worksheet": {
+    "run": "실행",
+    "running": "실행 중…",
+    "database": "데이터베이스",
+    "defaultDatabase": "기본 데이터베이스",
+    "shortcutHint": "⌘⏎ / Ctrl+Enter로 실행",
+    "results": "결과",
+    "emptyPrompt": "위에 SQL을 작성하고 실행을 누르면 결과가 표시됩니다.",
+    "noRows": "반환된 행이 없습니다.",
+    "resultSummary": "{{rows}}행 · {{elapsed}}ms",
+    "truncatedNotice": "결과가 처음 {{count}}행으로 잘렸습니다. LIMIT이나 필터로 결과를 좁혀보세요.",
+    "profile": {
+      "title": "프로파일",
+      "elapsed": "소요 시간",
+      "rows": "반환 행 수",
+      "rowsTruncated": "{{count}}+ (잘림)",
+      "rowLimit": "행 제한",
+      "database": "데이터베이스",
+      "statement": "실행된 문장"
+    }
+  },
   "placeholders": {
-    "worksheet": {
-      "title": "SQL 워크시트",
-      "description": "연결된 클러스터에 StarRocks SQL을 실행하는 Monaco 기반 에디터.",
-      "planned": [
-        "StarRocks SQL 문법과 스키마 인지 자동완성을 갖춘 Monaco 에디터",
-        "동적 컬럼을 지원하는 크기 조절형 결과 그리드",
-        "쿼리 프로파일 탭: 소요 시간, 스캔 바이트·행 수"
-      ]
-    },
     "lineage": {
       "title": "데이터 리니지",
       "description": "베이스 테이블과 Materialized View 의존성을 DAG로 렌더링합니다.",

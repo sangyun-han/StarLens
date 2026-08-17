@@ -89,6 +89,8 @@ docker run -p 9030:9030 -p 8030:8030 -p 8040:8040 \
 | `GET`  | `/api/v1/loads/routine`     | Routine load jobs across all databases: state, statistics, approximate offset lag. |
 | `GET`  | `/api/v1/alerts`            | Fired-alert history (in-memory, newest first).     |
 | `POST` | `/api/v1/alerts/test`       | Fires a synthetic alert through every notifier and reports per-channel results. |
+| `POST` | `/api/v1/query`             | Executes one worksheet statement; read-only by default (`QUERY_READ_ONLY`), rows capped by `QUERY_MAX_ROWS`. |
+| `GET`  | `/api/v1/databases`         | Databases for the worksheet's scope picker.        |
 
 Failures share one envelope so the UI can render them uniformly:
 
@@ -205,7 +207,7 @@ make check   # all of the above — what CI runs
 - [x] Routine load monitoring — job states, error rows, approximate lag
 - [x] Alerting — rule evaluation loop, log + webhook notifiers, test-fire endpoint
 - [x] UI internationalization (English & Korean, single-file language contributions)
-- [ ] SQL worksheet — Monaco editor, result grid, query profile
+- [x] SQL worksheet — Monaco editor, database scoping, result grid, execution profile
 - [ ] Data lineage — base table ↔ materialized view DAG via React Flow
 - [ ] Metrics — per-backend CPU/memory time series via ECharts (Prometheus client)
 - [ ] More notifier channels (email, PagerDuty) & alert rule configuration UI
