@@ -46,6 +46,7 @@ func (s *RoutineLoadService) CollectAlerts(ctx context.Context) ([]alert.Alert, 
 // reported on every evaluation.
 func (s *RoutineLoadService) EvaluateAlerts(snapshot model.RoutineLoadSnapshot) []alert.Alert {
 	var alerts []alert.Alert
+	policy := s.currentPolicy()
 
 	for _, job := range snapshot.Jobs {
 		subject := job.Database + "." + job.Name
@@ -74,10 +75,10 @@ func (s *RoutineLoadService) EvaluateAlerts(snapshot model.RoutineLoadSnapshot) 
 			})
 		}
 
-		if a, ok := s.errorRatioAlert(job, subject); ok {
+		if a, ok := errorRatioAlert(policy, job, subject); ok {
 			alerts = append(alerts, a)
 		}
-		if a, ok := s.offsetLagAlert(job, subject); ok {
+		if a, ok := offsetLagAlert(policy, job, subject); ok {
 			alerts = append(alerts, a)
 		}
 	}
@@ -85,13 +86,13 @@ func (s *RoutineLoadService) EvaluateAlerts(snapshot model.RoutineLoadSnapshot) 
 	return alerts
 }
 
-func (s *RoutineLoadService) errorRatioAlert(job model.RoutineLoadJob, subject string) (alert.Alert, bool) {
+func errorRatioAlert(policy RoutineLoadAlertPolicy, job model.RoutineLoadJob, subject string) (alert.Alert, bool) {
 	stats := job.Statistics
-	if s.policy.ErrorRowsRatio <= 0 || stats == nil || stats.TotalRows < s.policy.ErrorRowsMinTotal {
+	if policy.ErrorRowsRatio <= 0 || stats == nil || stats.TotalRows < policy.ErrorRowsMinTotal {
 		return alert.Alert{}, false
 	}
 	ratio := stats.ErrorRatio()
-	if ratio <= s.policy.ErrorRowsRatio {
+	if ratio <= policy.ErrorRowsRatio {
 		return alert.Alert{}, false
 	}
 
@@ -102,13 +103,13 @@ func (s *RoutineLoadService) errorRatioAlert(job model.RoutineLoadJob, subject s
 		Title:    fmt.Sprintf("Routine load job %q error rate is %.2f%%", subject, ratio*100),
 		Message: fmt.Sprintf(
 			"%d of %d consumed rows failed to load (threshold %.2f%%). Check ErrorLogUrls for rejected rows.",
-			stats.ErrorRows, stats.TotalRows, s.policy.ErrorRowsRatio*100),
+			stats.ErrorRows, stats.TotalRows, policy.ErrorRowsRatio*100),
 		Labels: jobLabels(job),
 	}, true
 }
 
-func (s *RoutineLoadService) offsetLagAlert(job model.RoutineLoadJob, subject string) (alert.Alert, bool) {
-	if s.policy.MaxOffsetLag <= 0 || job.OffsetLag == nil || *job.OffsetLag <= s.policy.MaxOffsetLag {
+func offsetLagAlert(policy RoutineLoadAlertPolicy, job model.RoutineLoadJob, subject string) (alert.Alert, bool) {
+	if policy.MaxOffsetLag <= 0 || job.OffsetLag == nil || *job.OffsetLag <= policy.MaxOffsetLag {
 		return alert.Alert{}, false
 	}
 
@@ -119,7 +120,7 @@ func (s *RoutineLoadService) offsetLagAlert(job model.RoutineLoadJob, subject st
 		Title:    fmt.Sprintf("Routine load job %q is lagging by ~%d messages", subject, *job.OffsetLag),
 		Message: fmt.Sprintf(
 			"Consumption trails the source log end by ~%d messages (threshold %d). The job may be under-provisioned or the source is bursting.",
-			*job.OffsetLag, s.policy.MaxOffsetLag),
+			*job.OffsetLag, policy.MaxOffsetLag),
 		Labels: jobLabels(job),
 	}, true
 }

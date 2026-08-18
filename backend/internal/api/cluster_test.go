@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -70,14 +72,26 @@ func newTestRouter(cluster topologyReader, db pinger) *gin.Engine {
 }
 
 func newTestRouterFull(cluster topologyReader, db pinger, loads routineLoadSnapshotter, alerts alertStore, queries queryExecutor) *gin.Engine {
+	settings, _ := alert.LoadSettings(filepath.Join(os.TempDir(), "starlens-test-alerts-absent.json"), alert.Config{
+		Enabled: true, PollInterval: 30 * time.Second, Cooldown: 10 * time.Minute,
+		WebhookFormat: alert.WebhookFormatGeneric, ErrorRowsRatio: 0.01, ErrorRowsMinTotal: 10_000,
+	})
+	return newTestRouterWithConfig(cluster, db, loads, alerts, queries,
+		NewAlertConfigHandler(settings, func(alert.Config) error { return nil }, true))
+}
+
+func newTestRouterWithConfig(cluster topologyReader, db pinger, loads routineLoadSnapshotter, alerts alertStore, queries queryExecutor, alertConfig *AlertConfigHandler) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	return Router(
 		config.ServerConfig{GinMode: gin.TestMode, AllowedOrigins: []string{"http://localhost:5173"}},
-		NewHealthHandler(db),
-		NewClusterHandler(cluster),
-		NewRoutineLoadHandler(loads),
-		NewAlertHandler(alerts),
-		NewQueryHandler(queries),
+		Handlers{
+			Health:      NewHealthHandler(db),
+			Cluster:     NewClusterHandler(cluster),
+			Loads:       NewRoutineLoadHandler(loads),
+			Alerts:      NewAlertHandler(alerts),
+			AlertConfig: alertConfig,
+			Queries:     NewQueryHandler(queries),
+		},
 	)
 }
 

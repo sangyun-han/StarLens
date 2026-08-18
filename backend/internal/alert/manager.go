@@ -22,6 +22,9 @@ type Manager struct {
 
 	mu        sync.Mutex
 	notifiers []Notifier
+	// webhook is the runtime-reconfigurable channel, kept separate from the
+	// always-on notifiers so the settings UI can replace or remove it.
+	webhook   Notifier
 	lastFired map[string]time.Time
 	recent    []Alert // newest first
 }
@@ -39,12 +42,36 @@ func NewManager(cooldown time.Duration, logger *slog.Logger) *Manager {
 	}
 }
 
-// Register adds a delivery channel. Not safe to call concurrently with Dispatch;
-// register everything during startup.
+// Register adds a permanent delivery channel (e.g. the log notifier).
 func (m *Manager) Register(notifier Notifier) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.notifiers = append(m.notifiers, notifier)
+}
+
+// SetWebhook installs, replaces or (with nil) removes the webhook channel.
+// Safe to call while alerts are being dispatched.
+func (m *Manager) SetWebhook(notifier Notifier) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.webhook = notifier
+}
+
+// SetCooldown changes the repeat-suppression window at runtime.
+func (m *Manager) SetCooldown(cooldown time.Duration) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.cooldown = cooldown
+}
+
+// channels snapshots every active notifier. Caller must hold m.mu.
+func (m *Manager) channels() []Notifier {
+	out := make([]Notifier, len(m.notifiers), len(m.notifiers)+1)
+	copy(out, m.notifiers)
+	if m.webhook != nil {
+		out = append(out, m.webhook)
+	}
+	return out
 }
 
 // Dispatch records the alert and delivers it to every notifier. It returns
@@ -60,8 +87,7 @@ func (m *Manager) Dispatch(ctx context.Context, alert Alert) bool {
 	alert.FiredAt = m.now().UTC()
 	m.lastFired[alert.Key] = alert.FiredAt
 	m.remember(alert)
-	notifiers := make([]Notifier, len(m.notifiers))
-	copy(notifiers, m.notifiers)
+	notifiers := m.channels()
 	m.mu.Unlock()
 
 	m.deliver(ctx, notifiers, alert)
@@ -83,8 +109,7 @@ func (m *Manager) Test(ctx context.Context) (Alert, map[string]string) {
 
 	m.mu.Lock()
 	m.remember(alert)
-	notifiers := make([]Notifier, len(m.notifiers))
-	copy(notifiers, m.notifiers)
+	notifiers := m.channels()
 	m.mu.Unlock()
 
 	results := make(map[string]string, len(notifiers))

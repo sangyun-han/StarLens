@@ -26,3 +26,6 @@ coverage.*
 # Logs
 *.log
 npm-debug.log*
+
+# Runtime-authored alert configuration overrides
+starlens-alerts.json

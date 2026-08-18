@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/sangyun-han/StarLens/backend/internal/model"
@@ -21,14 +22,31 @@ type routineLoadReader interface {
 // RoutineLoadService assembles the routine load monitoring view and evaluates
 // its alert rules.
 type RoutineLoadService struct {
-	repo   routineLoadReader
-	policy RoutineLoadAlertPolicy
-	now    func() time.Time
+	repo routineLoadReader
+	now  func() time.Time
+
+	// policy is guarded so the alert settings UI can retune thresholds while
+	// the evaluation loop is running.
+	policyMu sync.RWMutex
+	policy   RoutineLoadAlertPolicy
 }
 
 // NewRoutineLoadService wires the service to a repository and alert thresholds.
 func NewRoutineLoadService(repo routineLoadReader, policy RoutineLoadAlertPolicy) *RoutineLoadService {
 	return &RoutineLoadService{repo: repo, policy: policy, now: time.Now}
+}
+
+// SetPolicy replaces the alert thresholds at runtime.
+func (s *RoutineLoadService) SetPolicy(policy RoutineLoadAlertPolicy) {
+	s.policyMu.Lock()
+	defer s.policyMu.Unlock()
+	s.policy = policy
+}
+
+func (s *RoutineLoadService) currentPolicy() RoutineLoadAlertPolicy {
+	s.policyMu.RLock()
+	defer s.policyMu.RUnlock()
+	return s.policy
 }
 
 // Snapshot reads every routine load job and folds it into a single payload.

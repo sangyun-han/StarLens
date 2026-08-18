@@ -141,6 +141,46 @@ func TestTestBypassesCooldownAndReportsPerNotifier(t *testing.T) {
 	}
 }
 
+func TestSetWebhookInstallsReplacesAndRemoves(t *testing.T) {
+	m, _, _ := newTestManager(0)
+
+	first := &recordingNotifier{}
+	m.SetWebhook(namedNotifier{name: "webhook-1", inner: first})
+	m.Dispatch(context.Background(), Alert{Key: "a", RuleID: "r"})
+	if first.count() != 1 {
+		t.Errorf("installed webhook deliveries = %d, want 1", first.count())
+	}
+
+	second := &recordingNotifier{}
+	m.SetWebhook(namedNotifier{name: "webhook-2", inner: second})
+	m.Dispatch(context.Background(), Alert{Key: "b", RuleID: "r"})
+	if first.count() != 1 || second.count() != 1 {
+		t.Errorf("after replace: first=%d second=%d, want 1/1", first.count(), second.count())
+	}
+
+	m.SetWebhook(nil)
+	m.Dispatch(context.Background(), Alert{Key: "c", RuleID: "r"})
+	if second.count() != 1 {
+		t.Errorf("removed webhook still received deliveries: %d", second.count())
+	}
+}
+
+func TestSetCooldownAppliesToNextDispatch(t *testing.T) {
+	m, n, now := newTestManager(time.Hour)
+	a := Alert{Key: "k", RuleID: "r"}
+
+	m.Dispatch(context.Background(), a)
+	m.SetCooldown(time.Minute)
+	*now = now.Add(2 * time.Minute)
+
+	if !m.Dispatch(context.Background(), a) {
+		t.Error("shortened cooldown must let the repeat fire")
+	}
+	if n.count() != 2 {
+		t.Errorf("deliveries = %d, want 2", n.count())
+	}
+}
+
 type namedNotifier struct {
 	name  string
 	inner Notifier

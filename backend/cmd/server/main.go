@@ -76,23 +76,59 @@ func run(logger *slog.Logger) error {
 
 	alertManager := alert.NewManager(cfg.Alert.Cooldown, logger)
 	alertManager.Register(alert.NewLogNotifier(logger))
-	if cfg.Alert.WebhookURL != "" {
-		webhook, err := alert.NewWebhookNotifier(cfg.Alert.WebhookURL, cfg.Alert.WebhookFormat)
-		if err != nil {
-			return err
-		}
-		alertManager.Register(webhook)
-		logger.Info("alert webhook registered", "format", cfg.Alert.WebhookFormat)
+
+	// Environment values are the defaults; the settings file carries what the
+	// UI has overridden. applyAlertConfig pushes the effective result into the
+	// live components, at boot and again after every PUT /alerts/config.
+	alertSettings, err := alert.LoadSettings(cfg.Alert.OverrideFile, alert.Config{
+		Enabled:           cfg.Alert.Enabled,
+		PollInterval:      cfg.Alert.PollInterval,
+		Cooldown:          cfg.Alert.Cooldown,
+		WebhookURL:        cfg.Alert.WebhookURL,
+		WebhookFormat:     cfg.Alert.WebhookFormat,
+		ErrorRowsRatio:    cfg.Alert.ErrorRowsRatio,
+		ErrorRowsMinTotal: cfg.Alert.ErrorRowsMinTotal,
+		MaxOffsetLag:      cfg.Alert.MaxOffsetLag,
+	})
+	if err != nil {
+		logger.Warn("ignoring unreadable alert override file; environment defaults are in effect", "error", err)
 	}
 
-	if cfg.Alert.Enabled {
-		poller := alert.NewPoller(cfg.Alert.PollInterval, routineLoadService.CollectAlerts, alertManager, logger)
-		go poller.Run(ctx)
-		logger.Info("alert evaluation loop started",
-			"interval", cfg.Alert.PollInterval, "cooldown", cfg.Alert.Cooldown)
-	} else {
-		logger.Info("alert evaluation loop disabled (ALERT_ENABLED=false)")
+	applyAlertConfig := func(c alert.Config) error {
+		alertManager.SetCooldown(c.Cooldown)
+		if c.WebhookURL == "" {
+			alertManager.SetWebhook(nil)
+		} else {
+			webhook, err := alert.NewWebhookNotifier(c.WebhookURL, c.WebhookFormat)
+			if err != nil {
+				return err
+			}
+			alertManager.SetWebhook(webhook)
+		}
+		routineLoadService.SetPolicy(service.RoutineLoadAlertPolicy{
+			ErrorRowsRatio:    c.ErrorRowsRatio,
+			ErrorRowsMinTotal: c.ErrorRowsMinTotal,
+			MaxOffsetLag:      c.MaxOffsetLag,
+		})
+		return nil
 	}
+	if err := applyAlertConfig(alertSettings.Effective()); err != nil {
+		return err
+	}
+
+	// The poller always runs; enablement and interval are re-read every tick,
+	// so settings changes apply without a restart.
+	poller := alert.NewPoller(func() alert.PollSettings {
+		effective := alertSettings.Effective()
+		return alert.PollSettings{Interval: effective.PollInterval, Enabled: effective.Enabled}
+	}, routineLoadService.CollectAlerts, alertManager, logger)
+	go poller.Run(ctx)
+
+	effective := alertSettings.Effective()
+	logger.Info("alerting configured",
+		"enabled", effective.Enabled, "interval", effective.PollInterval,
+		"cooldown", effective.Cooldown, "webhook", effective.WebhookURL != "",
+		"uiEditable", cfg.Alert.UIEditable, "overrideFile", cfg.Alert.OverrideFile)
 
 	queryService := service.NewQueryService(
 		repository.NewQueryRepository(db, cfg.StarRocks.Database),
@@ -103,14 +139,14 @@ func run(logger *slog.Logger) error {
 		},
 	)
 
-	router := api.Router(
-		cfg.Server,
-		api.NewHealthHandler(db),
-		api.NewClusterHandler(clusterService),
-		api.NewRoutineLoadHandler(routineLoadService),
-		api.NewAlertHandler(alertManager),
-		api.NewQueryHandler(queryService),
-	)
+	router := api.Router(cfg.Server, api.Handlers{
+		Health:      api.NewHealthHandler(db),
+		Cluster:     api.NewClusterHandler(clusterService),
+		Loads:       api.NewRoutineLoadHandler(routineLoadService),
+		Alerts:      api.NewAlertHandler(alertManager),
+		AlertConfig: api.NewAlertConfigHandler(alertSettings, applyAlertConfig, cfg.Alert.UIEditable),
+		Queries:     api.NewQueryHandler(queryService),
+	})
 
 	server := &http.Server{
 		Addr:              ":" + cfg.Server.Port,

@@ -11,36 +11,57 @@ import (
 // consecutive ticks is expected — the Manager's cooldown handles repeats.
 type CollectFunc func(ctx context.Context) ([]Alert, error)
 
+// PollSettings is what the poller re-reads before every tick, so interval and
+// enablement changes from the settings UI apply without a restart.
+type PollSettings struct {
+	Interval time.Duration
+	Enabled  bool
+}
+
+// PollSettingsFunc supplies the current PollSettings.
+type PollSettingsFunc func() PollSettings
+
+// fallbackInterval guards against a zero interval from a misconfigured source.
+const fallbackInterval = 30 * time.Second
+
 // Poller periodically runs a CollectFunc and dispatches its alerts.
 type Poller struct {
-	interval time.Duration
+	settings PollSettingsFunc
 	collect  CollectFunc
 	manager  *Manager
 	logger   *slog.Logger
 }
 
 // NewPoller builds a Poller. Run it in a goroutine; it stops when ctx is done.
-func NewPoller(interval time.Duration, collect CollectFunc, manager *Manager, logger *slog.Logger) *Poller {
+func NewPoller(settings PollSettingsFunc, collect CollectFunc, manager *Manager, logger *slog.Logger) *Poller {
 	if logger == nil {
 		logger = slog.Default()
 	}
-	return &Poller{interval: interval, collect: collect, manager: manager, logger: logger}
+	return &Poller{settings: settings, collect: collect, manager: manager, logger: logger}
 }
 
-// Run evaluates immediately, then on every tick until ctx is cancelled. A
-// collection failure (cluster down, query timeout) is logged and retried on the
-// next tick — the poller itself never exits early.
+// Run evaluates immediately, then on every tick until ctx is cancelled.
+// Settings are re-read each iteration: disabling alerting skips evaluation but
+// keeps the loop alive so re-enabling needs no restart. A collection failure
+// (cluster down, query timeout) is logged and retried on the next tick.
 func (p *Poller) Run(ctx context.Context) {
-	ticker := time.NewTicker(p.interval)
-	defer ticker.Stop()
-
 	for {
-		p.evaluate(ctx)
+		settings := p.settings()
+		if settings.Enabled {
+			p.evaluate(ctx)
+		}
 
+		interval := settings.Interval
+		if interval <= 0 {
+			interval = fallbackInterval
+		}
+
+		timer := time.NewTimer(interval)
 		select {
 		case <-ctx.Done():
+			timer.Stop()
 			return
-		case <-ticker.C:
+		case <-timer.C:
 		}
 	}
 }
