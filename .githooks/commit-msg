@@ -1,0 +1,22 @@
+#!/bin/sh
+#
+# Strips tool-specific session/telemetry trailers from commit messages.
+#
+# Some AI coding assistants append a link to their own session transcript.
+# Those links are dead ends for everyone but their author, they are permanent
+# once pushed, and they point at a conversation whose contents this project
+# cannot vouch for — so they do not belong in public history.
+#
+# Enable it in your clone (hooks are not installed automatically):
+#
+#     git config core.hooksPath .githooks
+#
+# Attribution itself is welcome — use a standard trailer such as
+# `Co-Authored-By: Name <email>` instead.
+
+set -e
+
+perl -0777 -i -pe '
+  s/^(?:Claude-Session|Session-Link|Generated-With):[^\n]*\n//mg;
+  s/\n{2,}\z/\n/;
+' "$1"
