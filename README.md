@@ -89,6 +89,8 @@ docker run -p 9030:9030 -p 8030:8030 -p 8040:8040 \
 | `GET`  | `/api/v1/loads/routine`     | Routine load jobs across all databases: state, statistics, approximate offset lag. |
 | `GET`  | `/api/v1/alerts`            | Fired-alert history (in-memory, newest first).     |
 | `POST` | `/api/v1/alerts/test`       | Fires a synthetic alert through every notifier and reports per-channel results. |
+| `GET`  | `/api/v1/alerts/config`     | Effective alert configuration (webhook URL masked). |
+| `PUT`  | `/api/v1/alerts/config`     | Updates alert configuration at runtime; `403` when `ALERT_CONFIG_UI=false`. |
 | `POST` | `/api/v1/query`             | Executes one worksheet statement; read-only by default (`QUERY_READ_ONLY`), rows capped by `QUERY_MAX_ROWS`. |
 | `GET`  | `/api/v1/databases`         | Databases for the worksheet's scope picker.        |
 
@@ -126,8 +128,17 @@ sweeping every user database with `SHOW ALL ROUTINE LOAD`. The snapshot's
 
 StarLens evaluates alert rules on a background interval and fans results out to
 pluggable notifiers. Repeats of the same condition are suppressed for
-`ALERT_COOLDOWN` (default 10m). Everything is configured via environment
-variables — see [`backend/.env.example`](backend/.env.example).
+`ALERT_COOLDOWN` (default 10m).
+
+Configuration is layered: environment variables
+(see [`backend/.env.example`](backend/.env.example)) are the defaults, and the
+**alert settings dialog** (gear icon next to the alert history on the Routine
+Load page) writes overrides that persist to `ALERT_CONFIG_FILE` and apply
+immediately — webhook URL and format, evaluation interval, cooldown, and every
+rule threshold, with a save-and-test button and a one-click reset back to the
+environment. The webhook URL is write-only: reads return a masked hint. Until
+StarLens has authentication, `ALERT_CONFIG_UI=false` makes the configuration
+read-only over HTTP so dashboard visitors cannot redirect alerts.
 
 Built-in rules (routine load):
 
@@ -210,7 +221,8 @@ make check   # all of the above — what CI runs
 - [x] SQL worksheet — Monaco editor, database scoping, result grid, execution profile
 - [ ] Data lineage — base table ↔ materialized view DAG via React Flow
 - [ ] Metrics — per-backend CPU/memory time series via ECharts (Prometheus client)
-- [ ] More notifier channels (email, PagerDuty) & alert rule configuration UI
+- [x] Alert configuration UI — runtime webhook/threshold changes, env-layered, file-persisted
+- [ ] More notifier channels (email, PagerDuty)
 
 ## License
 

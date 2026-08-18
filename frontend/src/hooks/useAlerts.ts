@@ -1,7 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { api } from '@/lib/api'
-import type { AlertListResponse, AlertTestResponse } from '@/types/alert'
+import type {
+  AlertConfigPatch,
+  AlertConfigView,
+  AlertListResponse,
+  AlertTestResponse,
+} from '@/types/alert'
 
 export const ALERTS_QUERY_KEY = ['alerts'] as const
 
@@ -21,6 +26,36 @@ export function useAlerts() {
     refetchInterval: ALERTS_REFRESH_INTERVAL_MS,
     placeholderData: (previous) => previous,
     retry: 1,
+  })
+}
+
+export const ALERT_CONFIG_QUERY_KEY = ['alerts', 'config'] as const
+
+/** Reads the effective alerting configuration (webhook URL masked). */
+export function useAlertConfig() {
+  return useQuery({
+    queryKey: ALERT_CONFIG_QUERY_KEY,
+    queryFn: async ({ signal }) => {
+      const { data } = await api.get<AlertConfigView>('/alerts/config', { signal })
+      return data
+    },
+    staleTime: 30_000,
+    retry: 1,
+  })
+}
+
+/** Persists an alert configuration patch; changes apply without a restart. */
+export function useUpdateAlertConfig() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (patch: AlertConfigPatch) => {
+      const { data } = await api.put<AlertConfigView>('/alerts/config', patch)
+      return data
+    },
+    onSuccess: (view) => {
+      queryClient.setQueryData(ALERT_CONFIG_QUERY_KEY, view)
+    },
   })
 }
 

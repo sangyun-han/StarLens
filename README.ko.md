@@ -90,6 +90,8 @@ docker run -p 9030:9030 -p 8030:8030 -p 8040:8040 \
 | `GET`  | `/api/v1/loads/routine`     | 전체 데이터베이스의 Routine Load 잡: 상태, 통계, 근사 오프셋 지연. |
 | `GET`  | `/api/v1/alerts`            | 발생한 알림 히스토리 (인메모리, 최신순).           |
 | `POST` | `/api/v1/alerts/test`       | 모든 노티파이어로 테스트 알림을 발사하고 채널별 결과를 보고. |
+| `GET`  | `/api/v1/alerts/config`     | 유효 알림 설정 (웹훅 URL은 마스킹).                 |
+| `PUT`  | `/api/v1/alerts/config`     | 런타임 알림 설정 변경. `ALERT_CONFIG_UI=false`면 `403`. |
 | `POST` | `/api/v1/query`             | 워크시트 문장 하나를 실행. 기본은 읽기 전용(`QUERY_READ_ONLY`)이며 행 수는 `QUERY_MAX_ROWS`로 제한. |
 | `GET`  | `/api/v1/databases`         | 워크시트의 스코프 선택기용 데이터베이스 목록.       |
 
@@ -125,9 +127,17 @@ LOAD`로 순회하는 방식으로 폴백하며, 스냅샷의 `source` 필드에
 ## 알림 (Alerting)
 
 StarLens는 백그라운드 주기로 알림 규칙을 평가하고 결과를 플러그형 노티파이어로
-전달합니다. 같은 조건의 반복은 `ALERT_COOLDOWN`(기본 10분) 동안 억제됩니다. 모든
-설정은 환경 변수로 이루어집니다 —
-[`backend/.env.example`](backend/.env.example)을 참고하세요.
+전달합니다. 같은 조건의 반복은 `ALERT_COOLDOWN`(기본 10분) 동안 억제됩니다.
+
+설정은 계층 구조입니다: 환경 변수
+([`backend/.env.example`](backend/.env.example) 참고)가 기본값이고, **알림 설정
+다이얼로그**(Routine Load 페이지의 알림 히스토리 옆 기어 아이콘)에서 저장한
+값이 `ALERT_CONFIG_FILE`에 영속화되어 이를 덮어쓰며 재시작 없이 즉시
+적용됩니다 — 웹훅 URL·포맷, 평가 주기, 쿨다운, 모든 규칙 임계값을 다룰 수
+있고, 저장 후 테스트 버튼과 환경 변수로 되돌리기가 있습니다. 웹훅 URL은
+쓰기 전용이라 조회 시 마스킹된 힌트만 반환됩니다. 인증이 도입되기 전까지는
+`ALERT_CONFIG_UI=false`로 HTTP를 통한 설정 변경을 막아 대시보드 방문자가
+알림 목적지를 바꾸지 못하게 할 수 있습니다.
 
 내장 규칙 (Routine Load):
 
@@ -208,7 +218,8 @@ make check   # 위 전부 — CI가 실행하는 것
 - [x] SQL 워크시트 — Monaco 에디터, 데이터베이스 스코프, 결과 그리드, 실행 프로파일
 - [ ] 데이터 리니지 — React Flow 기반 베이스 테이블 ↔ Materialized View DAG
 - [ ] 메트릭 — ECharts 기반 백엔드별 CPU/메모리 시계열 (Prometheus 클라이언트)
-- [ ] 추가 노티파이어 채널 (이메일, PagerDuty) & 알림 규칙 설정 UI
+- [x] 알림 설정 UI — 런타임 웹훅·임계값 변경, 환경 변수 계층화, 파일 영속화
+- [ ] 추가 노티파이어 채널 (이메일, PagerDuty)
 
 ## 라이선스
 

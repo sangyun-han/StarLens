@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { AlertSettingsDialog } from '@/features/loads/components/AlertSettingsDialog'
 import { useAlerts, useTestAlert } from '@/hooks/useAlerts'
 import { useNow } from '@/hooks/useNow'
 import { formatRelativeTime } from '@/lib/format'
@@ -68,7 +69,7 @@ export function AlertsPanel() {
           <BellRing className="size-4 text-muted-foreground" />
           {t('alerts.recentAlerts')}
         </CardTitle>
-        <CardAction>
+        <CardAction className="flex items-center gap-1">
           <Button
             variant="outline"
             size="sm"
@@ -78,6 +79,7 @@ export function AlertsPanel() {
             <SendHorizontal className="size-3.5" />
             {t('common.test')}
           </Button>
+          <AlertSettingsDialog />
         </CardAction>
       </CardHeader>
 
