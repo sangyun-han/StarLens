@@ -15,6 +15,7 @@ type Handlers struct {
 	Loads       *RoutineLoadHandler
 	Alerts      *AlertHandler
 	AlertConfig *AlertConfigHandler
+	Storage     *StorageHandler
 	Queries     *QueryHandler
 }
 
@@ -37,6 +38,7 @@ func Router(cfg config.ServerConfig, handlers Handlers) *gin.Engine {
 	handlers.Alerts.register(v1)
 	handlers.AlertConfig.register(v1)
 	handlers.Queries.register(v1)
+	handlers.Storage.register(v1)
 
 	engine.NoRoute(func(c *gin.Context) {
 		respondError(c, http.StatusNotFound, "not_found",

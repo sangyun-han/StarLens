@@ -23,6 +23,7 @@ type Config struct {
 	ErrorRowsRatio    float64
 	ErrorRowsMinTotal int64
 	MaxOffsetLag      int64
+	MaxJournalLag     int64
 }
 
 // Override is the UI-authored partial configuration, persisted as JSON. Every
@@ -38,12 +39,13 @@ type Override struct {
 	ErrorRowsRatio    *float64 `json:"errorRowsRatio,omitempty"`
 	ErrorRowsMinTotal *int64   `json:"errorRowsMinTotal,omitempty"`
 	MaxOffsetLag      *int64   `json:"maxOffsetLag,omitempty"`
+	MaxJournalLag     *int64   `json:"maxJournalLag,omitempty"`
 }
 
 func (o Override) isEmpty() bool {
 	return o.Enabled == nil && o.PollInterval == nil && o.Cooldown == nil &&
 		o.WebhookURL == nil && o.WebhookFormat == nil && o.ErrorRowsRatio == nil &&
-		o.ErrorRowsMinTotal == nil && o.MaxOffsetLag == nil
+		o.ErrorRowsMinTotal == nil && o.MaxOffsetLag == nil && o.MaxJournalLag == nil
 }
 
 // minPollInterval keeps a UI typo from turning the evaluation loop into a
@@ -93,6 +95,9 @@ func (o Override) Validate() error {
 	}
 	if o.MaxOffsetLag != nil && *o.MaxOffsetLag < 0 {
 		return fmt.Errorf("%w: maxOffsetLag must not be negative", ErrInvalidOverride)
+	}
+	if o.MaxJournalLag != nil && *o.MaxJournalLag < 0 {
+		return fmt.Errorf("%w: maxJournalLag must not be negative", ErrInvalidOverride)
 	}
 	return nil
 }
@@ -166,6 +171,9 @@ func (s *Settings) Effective() Config {
 	if o.MaxOffsetLag != nil {
 		c.MaxOffsetLag = *o.MaxOffsetLag
 	}
+	if o.MaxJournalLag != nil {
+		c.MaxJournalLag = *o.MaxJournalLag
+	}
 	return c
 }
 
@@ -190,6 +198,7 @@ func (s *Settings) Overridden() []string {
 	appendIf(o.ErrorRowsRatio != nil, "errorRowsRatio")
 	appendIf(o.ErrorRowsMinTotal != nil, "errorRowsMinTotal")
 	appendIf(o.MaxOffsetLag != nil, "maxOffsetLag")
+	appendIf(o.MaxJournalLag != nil, "maxJournalLag")
 	return fields
 }
 
@@ -231,6 +240,9 @@ func (s *Settings) Update(patch Override, reset bool) error {
 	}
 	if patch.MaxOffsetLag != nil {
 		merged.MaxOffsetLag = patch.MaxOffsetLag
+	}
+	if patch.MaxJournalLag != nil {
+		merged.MaxJournalLag = patch.MaxJournalLag
 	}
 
 	if err := s.persist(merged); err != nil {

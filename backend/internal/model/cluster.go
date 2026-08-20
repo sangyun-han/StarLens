@@ -69,6 +69,22 @@ type Node struct {
 	// Warehouse is the multi-warehouse assignment of a CN, when reported.
 	Warehouse string `json:"warehouse,omitempty"`
 
+	// Frontend-only HA and metadata-replication state.
+	//
+	// ReplayedJournalID is how far this FE has applied the metadata edit log;
+	// JournalLag is how far it trails the leader (0 on the leader itself). A
+	// follower that stops replaying cannot take over, so lag is how a degraded
+	// HA setup shows itself while every node still reports Alive.
+	ReplayedJournalID *int64 `json:"replayedJournalId,omitempty"`
+	JournalLag        *int64 `json:"journalLag,omitempty"`
+	// IsHelper marks a frontend that participates in the election quorum.
+	IsHelper *bool `json:"isHelper,omitempty"`
+	// Joined reports whether the frontend finished joining the cluster.
+	Joined *bool `json:"joined,omitempty"`
+	// ClusterID must match across frontends; a disagreement means a node
+	// belongs to a different cluster.
+	ClusterID string `json:"clusterId,omitempty"`
+
 	// Backend-only capacity and workload metrics. Pointers stay nil when the
 	// running StarRocks version does not report the column.
 	TabletNum       *int64   `json:"tabletNum,omitempty"`
@@ -94,6 +110,19 @@ type TopologySummary struct {
 	// LeaderHost is the FE currently serving metadata writes, empty if no
 	// leader was elected — which is itself an alarming state.
 	LeaderHost string `json:"leaderHost"`
+	// ElectableAlive/ElectableTotal count LEADER+FOLLOWER frontends — the pool
+	// that forms the metadata quorum. OBSERVERs never vote, so they are
+	// excluded even though they replicate metadata.
+	ElectableAlive int `json:"electableAlive"`
+	ElectableTotal int `json:"electableTotal"`
+	// QuorumHealthy is true while a majority of electable frontends is alive.
+	// Losing quorum blocks metadata writes even if queries still serve.
+	QuorumHealthy bool `json:"quorumHealthy"`
+	// MaxJournalLag is the largest metadata replication lag among live
+	// non-leader frontends; nil when no frontend reports a journal position.
+	MaxJournalLag *int64 `json:"maxJournalLag,omitempty"`
+	// ClusterIDMismatch is true when frontends disagree on ClusterId.
+	ClusterIDMismatch bool `json:"clusterIdMismatch"`
 	// TabletTotal is the sum of tablets across live backends and compute nodes.
 	TabletTotal int64 `json:"tabletTotal"`
 	// Healthy is true only when a leader exists, every node is alive, and the

@@ -65,6 +65,7 @@ func run(logger *slog.Logger) error {
 	defer stop()
 
 	clusterService := service.NewClusterService(repository.NewClusterRepository(db))
+	clusterService.SetAlertPolicy(service.ClusterAlertPolicy{MaxJournalLag: cfg.Alert.MaxJournalLag})
 	routineLoadService := service.NewRoutineLoadService(
 		repository.NewRoutineLoadRepository(db),
 		service.RoutineLoadAlertPolicy{
@@ -89,6 +90,7 @@ func run(logger *slog.Logger) error {
 		ErrorRowsRatio:    cfg.Alert.ErrorRowsRatio,
 		ErrorRowsMinTotal: cfg.Alert.ErrorRowsMinTotal,
 		MaxOffsetLag:      cfg.Alert.MaxOffsetLag,
+		MaxJournalLag:     cfg.Alert.MaxJournalLag,
 	})
 	if err != nil {
 		logger.Warn("ignoring unreadable alert override file; environment defaults are in effect", "error", err)
@@ -110,6 +112,7 @@ func run(logger *slog.Logger) error {
 			ErrorRowsMinTotal: c.ErrorRowsMinTotal,
 			MaxOffsetLag:      c.MaxOffsetLag,
 		})
+		clusterService.SetAlertPolicy(service.ClusterAlertPolicy{MaxJournalLag: c.MaxJournalLag})
 		return nil
 	}
 	if err := applyAlertConfig(alertSettings.Effective()); err != nil {
@@ -121,7 +124,7 @@ func run(logger *slog.Logger) error {
 	poller := alert.NewPoller(func() alert.PollSettings {
 		effective := alertSettings.Effective()
 		return alert.PollSettings{Interval: effective.PollInterval, Enabled: effective.Enabled}
-	}, routineLoadService.CollectAlerts, alertManager, logger)
+	}, alert.Combine(clusterService.CollectAlerts, routineLoadService.CollectAlerts), alertManager, logger)
 	go poller.Run(ctx)
 
 	effective := alertSettings.Effective()
@@ -146,6 +149,7 @@ func run(logger *slog.Logger) error {
 		Alerts:      api.NewAlertHandler(alertManager),
 		AlertConfig: api.NewAlertConfigHandler(alertSettings, applyAlertConfig, cfg.Alert.UIEditable),
 		Queries:     api.NewQueryHandler(queryService),
+		Storage:     api.NewStorageHandler(service.NewStorageService(repository.NewStorageRepository(db))),
 	})
 
 	server := &http.Server{

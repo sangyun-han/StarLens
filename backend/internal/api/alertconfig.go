@@ -60,6 +60,7 @@ type alertConfigView struct {
 		ErrorRowsRatio    float64 `json:"errorRowsRatio"`
 		ErrorRowsMinTotal int64   `json:"errorRowsMinTotal"`
 		MaxOffsetLag      int64   `json:"maxOffsetLag"`
+		MaxJournalLag     int64   `json:"maxJournalLag"`
 	} `json:"config"`
 }
 
@@ -79,6 +80,7 @@ func (h *AlertConfigHandler) view() alertConfigView {
 	view.Config.ErrorRowsRatio = effective.ErrorRowsRatio
 	view.Config.ErrorRowsMinTotal = effective.ErrorRowsMinTotal
 	view.Config.MaxOffsetLag = effective.MaxOffsetLag
+	view.Config.MaxJournalLag = effective.MaxJournalLag
 	return view
 }
 

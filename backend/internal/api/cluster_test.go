@@ -91,6 +91,7 @@ func newTestRouterWithConfig(cluster topologyReader, db pinger, loads routineLoa
 			Alerts:      NewAlertHandler(alerts),
 			AlertConfig: alertConfig,
 			Queries:     NewQueryHandler(queries),
+			Storage:     NewStorageHandler(stubStorageService{}),
 		},
 	)
 }
@@ -244,4 +245,46 @@ func TestUnknownRouteReturnsErrorEnvelope(t *testing.T) {
 	if body.Error.Code != "not_found" {
 		t.Errorf("error.code = %q, want not_found", body.Error.Code)
 	}
+}
+
+type stubStorageService struct {
+	statistic model.StorageStatistic
+	list      model.TableList
+	detail    model.TableDetail
+	err       error
+}
+
+func (s stubStorageService) Statistic(context.Context) (model.StorageStatistic, error) {
+	return s.statistic, s.err
+}
+
+func (s stubStorageService) Tables(_ context.Context, database string) (model.TableList, error) {
+	if s.err != nil {
+		return model.TableList{}, s.err
+	}
+	if database == "" {
+		return model.TableList{}, fmt.Errorf("%w: database is required", service.ErrInvalidArgument)
+	}
+	return s.list, nil
+}
+
+func (s stubStorageService) TableDetail(context.Context, string, string) (model.TableDetail, error) {
+	return s.detail, s.err
+}
+
+func newTestRouterWithStorage(storage storageReader) *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	settings, _ := alert.LoadSettings(filepath.Join(os.TempDir(), "starlens-test-alerts-absent.json"), alert.Config{})
+	return Router(
+		config.ServerConfig{GinMode: gin.TestMode},
+		Handlers{
+			Health:      NewHealthHandler(stubPinger{}),
+			Cluster:     NewClusterHandler(stubClusterService{}),
+			Loads:       NewRoutineLoadHandler(stubRoutineLoadService{}),
+			Alerts:      NewAlertHandler(stubAlertStore{}),
+			AlertConfig: NewAlertConfigHandler(settings, func(alert.Config) error { return nil }, true),
+			Queries:     NewQueryHandler(stubQueryService{}),
+			Storage:     NewStorageHandler(storage),
+		},
+	)
 }

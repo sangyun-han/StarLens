@@ -19,6 +19,12 @@ import (
 // dashboard itself is healthy — the cluster it observes is not.
 var ErrUnavailable = errors.New("starrocks unavailable")
 
+// ErrInvalidArgument reports a caller mistake the API layer turns into 400.
+var ErrInvalidArgument = errors.New("invalid argument")
+
+// ErrNotFound reports a missing catalog object; the API layer turns it into 404.
+var ErrNotFound = errors.New("not found")
+
 // clusterReader is the slice of the repository this service depends on, declared
 // here so the service can be tested against a fake.
 type clusterReader interface {
@@ -32,6 +38,9 @@ type clusterReader interface {
 type ClusterService struct {
 	repo clusterReader
 	now  func() time.Time
+
+	// policyGuard carries the runtime-tunable alert thresholds.
+	policyGuard
 }
 
 // NewClusterService wires the service to a repository.
@@ -67,6 +76,7 @@ func (s *ClusterService) Topology(ctx context.Context) (model.Topology, error) {
 		frontends = append(frontends, mapFrontend(row))
 	}
 	sortFrontends(frontends)
+	applyJournalLag(frontends)
 
 	backends := make([]model.Node, 0, len(beRows))
 	for _, row := range beRows {
@@ -128,17 +138,21 @@ func mapFrontend(row repository.Row) model.Node {
 	}
 
 	node := model.Node{
-		ID:            "fe:" + firstNonEmpty(name, host, "unknown"),
-		Name:          name,
-		Type:          model.NodeTypeFrontend,
-		Role:          frontendRole(row),
-		Alive:         row.Bool("alive"),
-		Host:          host,
-		Ports:         collectPorts(row, "queryport", "httpport", "editlogport", "rpcport"),
-		Version:       row.Str("version"),
-		StartTime:     row.Str("starttime", "laststarttime"),
-		LastHeartbeat: row.Str("lastheartbeat"),
-		ErrMsg:        row.Str("errmsg"),
+		ID:                "fe:" + firstNonEmpty(name, host, "unknown"),
+		Name:              name,
+		Type:              model.NodeTypeFrontend,
+		Role:              frontendRole(row),
+		Alive:             row.Bool("alive"),
+		Host:              host,
+		Ports:             collectPorts(row, "queryport", "httpport", "editlogport", "rpcport"),
+		Version:           row.Str("version"),
+		StartTime:         row.Str("starttime", "laststarttime"),
+		LastHeartbeat:     row.Str("lastheartbeat"),
+		ErrMsg:            row.Str("errmsg"),
+		ReplayedJournalID: row.Int64("replayedjournalid", "replayed_journal_id"),
+		IsHelper:          boolPtr(row, "ishelper", "is_helper"),
+		Joined:            boolPtr(row, "join", "joined"),
+		ClusterID:         row.Str("clusterid", "cluster_id"),
 	}
 
 	node.Status = model.StatusDown
@@ -161,18 +175,22 @@ func mapDataNode(row repository.Row, nodeType model.NodeType) model.Node {
 	}
 
 	node := model.Node{
-		ID:            idPrefix + firstNonEmpty(nodeID, host, "unknown"),
-		Name:          firstNonEmpty(host, string(nodeType)+"-"+nodeID),
-		Type:          nodeType,
-		Role:          role,
-		Alive:         row.Bool("alive"),
-		Host:          host,
-		Ports:         collectPorts(row, "heartbeatport", "beport", "httpport", "brpcport", "starletport"),
-		Version:       row.Str("version"),
-		StartTime:     row.Str("laststarttime", "starttime"),
-		LastHeartbeat: row.Str("lastheartbeat"),
-		ErrMsg:        row.Str("errmsg"),
-		Warehouse:     row.Str("warehousename", "warehouse"),
+		ID:                idPrefix + firstNonEmpty(nodeID, host, "unknown"),
+		Name:              firstNonEmpty(host, string(nodeType)+"-"+nodeID),
+		Type:              nodeType,
+		Role:              role,
+		Alive:             row.Bool("alive"),
+		Host:              host,
+		Ports:             collectPorts(row, "heartbeatport", "beport", "httpport", "brpcport", "starletport"),
+		Version:           row.Str("version"),
+		StartTime:         row.Str("laststarttime", "starttime"),
+		LastHeartbeat:     row.Str("lastheartbeat"),
+		ErrMsg:            row.Str("errmsg"),
+		ReplayedJournalID: row.Int64("replayedjournalid", "replayed_journal_id"),
+		IsHelper:          boolPtr(row, "ishelper", "is_helper"),
+		Joined:            boolPtr(row, "join", "joined"),
+		ClusterID:         row.Str("clusterid", "cluster_id"),
+		Warehouse:         row.Str("warehousename", "warehouse"),
 
 		TabletNum:       row.Int64("tabletnum"),
 		CPUCores:        row.Int64("cpucores"),
@@ -242,6 +260,9 @@ var portLabels = map[string]string{
 }
 
 func summarize(frontends, backends, computeNodes []model.Node) model.TopologySummary {
+	// Frontends must all report the same ClusterId; a second value means a node
+	// was pointed at the wrong cluster.
+	clusterIDs := make(map[string]struct{}, 1)
 	summary := model.TopologySummary{
 		FrontendTotal: len(frontends),
 		BackendTotal:  len(backends),
@@ -251,6 +272,23 @@ func summarize(frontends, backends, computeNodes []model.Node) model.TopologySum
 	for _, fe := range frontends {
 		if fe.Alive {
 			summary.FrontendAlive++
+		}
+		if fe.Role == model.RoleLeader || fe.Role == model.RoleFollower {
+			summary.ElectableTotal++
+			if fe.Alive {
+				summary.ElectableAlive++
+			}
+		}
+		if fe.ClusterID != "" {
+			clusterIDs[fe.ClusterID] = struct{}{}
+		}
+		// Only live replicas say anything useful about replication health; a
+		// dead one is already reported as down.
+		if fe.Alive && fe.Role != model.RoleLeader && fe.JournalLag != nil {
+			if summary.MaxJournalLag == nil || *fe.JournalLag > *summary.MaxJournalLag {
+				lag := *fe.JournalLag
+				summary.MaxJournalLag = &lag
+			}
 		}
 		if fe.Role == model.RoleLeader && fe.Alive {
 			summary.LeaderHost = fe.Host
@@ -275,9 +313,17 @@ func summarize(frontends, backends, computeNodes []model.Node) model.TopologySum
 		}
 	}
 
+	summary.ClusterIDMismatch = len(clusterIDs) > 1
+	// A metadata quorum needs a strict majority of the electable frontends;
+	// below that, metadata writes block even though queries may still serve.
+	summary.QuorumHealthy = summary.ElectableTotal > 0 &&
+		summary.ElectableAlive > summary.ElectableTotal/2
+
 	// Compute capacity may come from BEs (shared-nothing) or CNs (shared-data);
 	// either satisfies the "can this cluster serve queries" requirement.
 	summary.Healthy = summary.LeaderHost != "" &&
+		summary.QuorumHealthy &&
+		!summary.ClusterIDMismatch &&
 		summary.FrontendAlive == summary.FrontendTotal &&
 		summary.BackendAlive == summary.BackendTotal &&
 		summary.ComputeAlive == summary.ComputeTotal &&
@@ -328,4 +374,45 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
+}
+
+// boolPtr reports a tri-state boolean column: nil when the running StarRocks
+// version does not report it, so "false" never masquerades as "not reported".
+func boolPtr(row repository.Row, names ...string) *bool {
+	if row.Str(names...) == "" {
+		return nil
+	}
+	v := row.Bool(names...)
+	return &v
+}
+
+// applyJournalLag fills JournalLag on every frontend relative to the elected
+// leader's replay position.
+//
+// Replication lag is the difference between the leader's journal id and each
+// replica's: the leader is 0 by definition, and a follower that stops
+// advancing is unable to take over even while it still answers heartbeats —
+// which is exactly the failure Alive alone cannot show.
+func applyJournalLag(frontends []model.Node) {
+	var leaderJournal *int64
+	for _, fe := range frontends {
+		if fe.Role == model.RoleLeader && fe.Alive && fe.ReplayedJournalID != nil {
+			leaderJournal = fe.ReplayedJournalID
+			break
+		}
+	}
+	if leaderJournal == nil {
+		return
+	}
+
+	for i := range frontends {
+		journal := frontends[i].ReplayedJournalID
+		if journal == nil {
+			continue
+		}
+		// A replica briefly ahead of the leader's snapshot reads as caught up
+		// rather than as negative lag.
+		lag := max(*leaderJournal-*journal, 0)
+		frontends[i].JournalLag = &lag
+	}
 }

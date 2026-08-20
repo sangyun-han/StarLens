@@ -195,6 +195,8 @@ func TestTopologySummary(t *testing.T) {
 	want := model.TopologySummary{
 		FrontendTotal: 3, FrontendAlive: 2,
 		BackendTotal: 3, BackendAlive: 2,
+		// The observer never votes, so the electable pool is leader + follower.
+		ElectableTotal: 2, ElectableAlive: 2, QuorumHealthy: true,
 		LeaderHost: "172.26.92.1", TabletTotal: 1536, Healthy: false,
 	}
 	if got != want {

@@ -84,6 +84,9 @@ type AlertConfig struct {
 	// MaxOffsetLag fires when a job's approximate offset lag exceeds this many
 	// messages; <= 0 disables the rule.
 	MaxOffsetLag int64
+	// MaxJournalLag fires when a live frontend trails the leader's metadata
+	// journal by more than this many entries; <= 0 disables the rule.
+	MaxJournalLag int64
 
 	// UIEditable gates PUT /api/v1/alerts/config. Until StarLens has
 	// authentication, disabling it stops dashboard visitors from redirecting
@@ -132,6 +135,7 @@ func loadAlert() (AlertConfig, error) {
 		ErrorRowsRatio:    envFloat("ALERT_ERROR_ROWS_RATIO", 0.01),
 		ErrorRowsMinTotal: envInt64("ALERT_ERROR_ROWS_MIN_TOTAL", 10_000),
 		MaxOffsetLag:      envInt64("ALERT_MAX_OFFSET_LAG", 0),
+		MaxJournalLag:     envInt64("ALERT_MAX_JOURNAL_LAG", 1000),
 		UIEditable:        envBool("ALERT_CONFIG_UI", true),
 		OverrideFile:      envString("ALERT_CONFIG_FILE", "starlens-alerts.json"),
 	}
