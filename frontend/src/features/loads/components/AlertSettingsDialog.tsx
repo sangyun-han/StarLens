@@ -38,6 +38,7 @@ interface FormState {
   errorRowsPercent: string
   errorRowsMinTotal: string
   maxOffsetLag: string
+  maxJournalLag: string
 }
 
 function toFormState(view: AlertConfigView): FormState {
@@ -51,6 +52,7 @@ function toFormState(view: AlertConfigView): FormState {
     errorRowsPercent: String(Math.round(view.config.errorRowsRatio * 10000) / 100),
     errorRowsMinTotal: String(view.config.errorRowsMinTotal),
     maxOffsetLag: String(view.config.maxOffsetLag),
+    maxJournalLag: String(view.config.maxJournalLag),
   }
 }
 
@@ -63,6 +65,7 @@ function toPatch(form: FormState): AlertConfigPatch {
     errorRowsRatio: Number(form.errorRowsPercent) / 100,
     errorRowsMinTotal: Number(form.errorRowsMinTotal),
     maxOffsetLag: Number(form.maxOffsetLag),
+    maxJournalLag: Number(form.maxJournalLag),
   }
   // The URL is write-only: only send it when the operator typed a new one or
   // explicitly asked to remove the webhook.
@@ -252,7 +255,30 @@ export function AlertSettingsDialog() {
               </Field>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
+              <Field id="alert-journal-lag" label={t('alertSettings.maxJournalLag')}>
+                <Input
+                  id="alert-journal-lag"
+                  type="number"
+                  min="0"
+                  value={form.maxJournalLag}
+                  onChange={(e) => set('maxJournalLag', e.target.value)}
+                  disabled={!editable}
+                />
+              </Field>
+              <Field id="alert-lag" label={t('alertSettings.maxOffsetLag')}>
+                <Input
+                  id="alert-lag"
+                  type="number"
+                  min="0"
+                  value={form.maxOffsetLag}
+                  onChange={(e) => set('maxOffsetLag', e.target.value)}
+                  disabled={!editable}
+                />
+              </Field>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
               <Field id="alert-ratio" label={t('alertSettings.errorRowsPercent')}>
                 <Input
                   id="alert-ratio"
@@ -272,16 +298,6 @@ export function AlertSettingsDialog() {
                   min="0"
                   value={form.errorRowsMinTotal}
                   onChange={(e) => set('errorRowsMinTotal', e.target.value)}
-                  disabled={!editable}
-                />
-              </Field>
-              <Field id="alert-lag" label={t('alertSettings.maxOffsetLag')}>
-                <Input
-                  id="alert-lag"
-                  type="number"
-                  min="0"
-                  value={form.maxOffsetLag}
-                  onChange={(e) => set('maxOffsetLag', e.target.value)}
                   disabled={!editable}
                 />
               </Field>

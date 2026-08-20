@@ -1,4 +1,4 @@
-import { Activity, Network, Rss, SquareTerminal, Workflow } from 'lucide-react'
+import { Activity, HardDrive, Network, Rss, SquareTerminal, Workflow } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 export interface NavItem {
@@ -25,6 +25,13 @@ export const NAV_ITEMS: readonly NavItem[] = [
     labelKey: 'nav.loads.label',
     descriptionKey: 'nav.loads.description',
     icon: Rss,
+    available: true,
+  },
+  {
+    to: '/storage',
+    labelKey: 'nav.storage.label',
+    descriptionKey: 'nav.storage.description',
+    icon: HardDrive,
     available: true,
   },
   {

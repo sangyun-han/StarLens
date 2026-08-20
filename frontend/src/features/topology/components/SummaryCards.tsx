@@ -71,10 +71,13 @@ export function SummaryCards({
         value={summary.leaderHost || t('topology.summary.none')}
         hint={
           summary.leaderHost
-            ? t('topology.summary.leaderHint')
+            ? t('topology.summary.quorumHint', {
+                alive: summary.electableAlive,
+                total: summary.electableTotal,
+              })
             : t('topology.summary.noLeaderHint')
         }
-        tone={summary.leaderHost ? 'neutral' : 'bad'}
+        tone={summary.leaderHost && summary.quorumHealthy ? 'neutral' : 'bad'}
         mono
       />
       <StatCard

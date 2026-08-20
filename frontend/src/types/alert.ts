@@ -49,6 +49,7 @@ export interface AlertConfigView {
     errorRowsRatio: number
     errorRowsMinTotal: number
     maxOffsetLag: number
+    maxJournalLag: number
   }
 }
 
@@ -65,4 +66,5 @@ export interface AlertConfigPatch {
   errorRowsRatio?: number
   errorRowsMinTotal?: number
   maxOffsetLag?: number
+  maxJournalLag?: number
 }

@@ -9,6 +9,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Skeleton } from '@/components/ui/skeleton'
 import { DEFAULT_ROUTE } from '@/config/navigation'
 import { RoutineLoadView } from '@/features/loads/RoutineLoadView'
+import { StorageView } from '@/features/storage/StorageView'
 import { TopologyView } from '@/features/topology/TopologyView'
 
 // Monaco is heavy; the worksheet (and the editor with it) loads on demand so
@@ -22,6 +23,7 @@ export function App() {
         <Route index element={<Navigate to={DEFAULT_ROUTE} replace />} />
         <Route path="topology" element={<TopologyView />} />
         <Route path="loads" element={<RoutineLoadView />} />
+        <Route path="storage" element={<StorageView />} />
 
         <Route
           path="worksheet"

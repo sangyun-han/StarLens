@@ -87,6 +87,9 @@ docker run -p 9030:9030 -p 8030:8030 -p 8040:8040 \
 | `GET`  | `/api/v1/cluster/topology`  | FE/BE/CN membership, roles, liveness, capacity, and the cluster's deployment mode. |
 | `GET`  | `/api/v1/topology`          | Alias of the above.                                |
 | `GET`  | `/api/v1/loads/routine`     | Routine load jobs across all databases: state, statistics, approximate offset lag. |
+| `GET`  | `/api/v1/storage/statistic` | Per-database catalog counts and tablet health (unhealthy, inconsistent, cloning, error-state). |
+| `GET`  | `/api/v1/storage/tables`    | Tables in a database with model, distribution, rows and size. |
+| `GET`  | `/api/v1/storage/tables/:db/:table` | Partitions, per-backend tablet distribution, rowset/segment counts and data skew. |
 | `GET`  | `/api/v1/alerts`            | Fired-alert history (in-memory, newest first).     |
 | `POST` | `/api/v1/alerts/test`       | Fires a synthetic alert through every notifier and reports per-channel results. |
 | `GET`  | `/api/v1/alerts/config`     | Effective alert configuration (webhook URL masked). |
@@ -114,6 +117,18 @@ layer exists. The `runMode` field reports how the cluster is deployed, read from
 the FE `run_mode` config: `shared_data`, `shared_nothing` (also inferred for
 pre-3.0 releases where the config item does not exist), or `unknown` when the
 connecting user lacks the ADMIN privilege to read FE configs.
+
+Frontend HA is covered too: each frontend's replayed journal position becomes a
+lag figure against the leader, and the summary reports the electable quorum
+(LEADER+FOLLOWER; observers do not vote) plus any ClusterId disagreement. A
+replica that stops replaying still answers heartbeats, so lag — not liveness —
+is what shows a failover would not succeed.
+
+Below the table, `/storage` reads backend-reported tablet detail: rowset and
+segment counts expose compaction pressure, and skew is measured both between
+backends (what rebalancing fixes) and between tablets (what only a better
+distribution key fixes). Tablet queries are always scoped to one table — the
+backing view is expensive to scan cluster-wide.
 
 SHOW column sets drift between StarRocks releases, so every field is read by
 name with fallbacks (`IP`/`Host`, `Role`/`IsMaster`, `BackendId`/`ComputeNodeId`)
@@ -148,6 +163,11 @@ Built-in rules (routine load):
 | `routine_load_cancelled`   | critical | A job is `CANCELLED` — ingestion will not resume on its own.   |
 | `routine_load_error_ratio` | warning  | `errorRows/totalRows` exceeds `ALERT_ERROR_ROWS_RATIO`.        |
 | `routine_load_offset_lag`  | warning  | Approximate lag exceeds `ALERT_MAX_OFFSET_LAG` (opt-in).       |
+| `cluster_node_down`        | critical | A frontend, backend or compute node stopped answering heartbeats. |
+| `cluster_no_leader`        | critical | No frontend is elected — metadata writes are blocked.          |
+| `cluster_quorum_lost`      | critical | Fewer than a majority of electable frontends are alive.        |
+| `cluster_id_mismatch`      | critical | Frontends report different cluster ids.                        |
+| `fe_journal_lag`           | warning  | A frontend trails the leader's journal by `ALERT_MAX_JOURNAL_LAG`. |
 
 Built-in notifiers:
 
@@ -219,6 +239,7 @@ make check   # all of the above — what CI runs
 - [x] Alerting — rule evaluation loop, log + webhook notifiers, test-fire endpoint
 - [x] UI internationalization (English & Korean, single-file language contributions)
 - [x] SQL worksheet — Monaco editor, database scoping, result grid, execution profile
+- [x] Frontend HA & tablet-layer monitoring — journal lag, quorum, rowsets/segments, data skew
 - [ ] Data lineage — base table ↔ materialized view DAG via React Flow
 - [ ] Metrics — per-backend CPU/memory time series via ECharts (Prometheus client)
 - [x] Alert configuration UI — runtime webhook/threshold changes, env-layered, file-persisted

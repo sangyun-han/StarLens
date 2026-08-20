@@ -1,4 +1,4 @@
-import { Cpu, HardDrive, Server, TriangleAlert } from 'lucide-react'
+import { CircleAlert, Cpu, HardDrive, Server, TriangleAlert } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -38,6 +38,19 @@ export function TopologyView() {
   return (
     <div className="flex flex-col gap-6">
       {isError && <StaleNotice message={t('topology.staleNotice')} />}
+
+      {/* HA problems that liveness alone does not show. */}
+      {!data.summary.quorumHealthy && data.summary.electableTotal > 0 && (
+        <CriticalNotice
+          message={t('topology.quorumLost', {
+            alive: data.summary.electableAlive,
+            total: data.summary.electableTotal,
+          })}
+        />
+      )}
+      {data.summary.clusterIdMismatch && (
+        <CriticalNotice message={t('topology.clusterIdMismatch')} />
+      )}
 
       <SummaryCards summary={data.summary} runMode={data.runMode} />
 
@@ -125,6 +138,16 @@ function NodeSection({
         </div>
       )}
     </section>
+  )
+}
+
+/** A condition that blocks metadata writes — louder than a stale-data notice. */
+function CriticalNotice({ message }: { message: string }) {
+  return (
+    <div className="flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive ring-1 ring-inset ring-destructive/25">
+      <CircleAlert className="size-3.5 shrink-0" />
+      {message}
+    </div>
   )
 }
 

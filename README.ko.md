@@ -88,6 +88,9 @@ docker run -p 9030:9030 -p 8030:8030 -p 8040:8040 \
 | `GET`  | `/api/v1/cluster/topology`  | FE/BE/CN 멤버십, 역할, 생존 상태, 용량, 클러스터 배포 모드. |
 | `GET`  | `/api/v1/topology`          | 위 엔드포인트의 별칭.                              |
 | `GET`  | `/api/v1/loads/routine`     | 전체 데이터베이스의 Routine Load 잡: 상태, 통계, 근사 오프셋 지연. |
+| `GET`  | `/api/v1/storage/statistic` | DB별 카탈로그 수치와 태블릿 건강도(unhealthy·불일치·복제중·오류). |
+| `GET`  | `/api/v1/storage/tables`    | 데이터베이스의 테이블 목록(모델, 분산 방식, 행 수, 크기). |
+| `GET`  | `/api/v1/storage/tables/:db/:table` | 파티션, 백엔드별 태블릿 분포, rowset/segment 수, 데이터 스큐. |
 | `GET`  | `/api/v1/alerts`            | 발생한 알림 히스토리 (인메모리, 최신순).           |
 | `POST` | `/api/v1/alerts/test`       | 모든 노티파이어로 테스트 알림을 발사하고 채널별 결과를 보고. |
 | `GET`  | `/api/v1/alerts/config`     | 유효 알림 설정 (웹훅 URL은 마스킹).                 |
@@ -114,6 +117,16 @@ shared-data 클러스터는 CN을(웨어하우스 할당 정보 포함) 표시�
 설정에서 읽은 배포 방식을 알려줍니다: `shared_data`, `shared_nothing`(설정
 항목이 없는 3.0 미만 릴리스도 이 값으로 추론), 또는 접속 계정에 FE 설정을 읽을
 ADMIN 권한이 없을 때의 `unknown`.
+
+프론트엔드 HA도 다룹니다: 각 FE의 저널 재생 위치를 리더 기준 지연으로 환산하고,
+선출 가능 쿼럼(LEADER+FOLLOWER, 옵저버는 투표하지 않음)과 ClusterId 불일치를
+요약에 표시합니다. 복제가 멈춘 노드도 하트비트에는 응답하므로, 페일오버가
+실패할 상황을 드러내는 것은 생존 여부가 아니라 지연입니다.
+
+테이블 아래 계층은 `/storage`가 백엔드 보고 기반으로 읽습니다: rowset·segment
+수가 컴팩션 압박을 드러내고, 스큐는 백엔드 간(리밸런싱으로 해결)과 태블릿
+간(더 나은 분산 키로만 해결) 두 층위로 측정합니다. 태블릿 조회는 항상 테이블
+단위로 스코프를 겁니다 — 클러스터 전체 스캔은 비쌉니다.
 
 SHOW 결과의 컬럼 구성은 StarRocks 릴리스마다 달라지므로, 모든 필드는 별칭
 폴백(`IP`/`Host`, `Role`/`IsMaster`, `BackendId`/`ComputeNodeId`)과 함께 이름으로
@@ -147,6 +160,11 @@ StarLens는 백그라운드 주기로 알림 규칙을 평가하고 결과를 �
 | `routine_load_cancelled`   | critical | 잡이 `CANCELLED` 상태 — 적재가 스스로 재개되지 않음.           |
 | `routine_load_error_ratio` | warning  | `errorRows/totalRows`가 `ALERT_ERROR_ROWS_RATIO` 초과.         |
 | `routine_load_offset_lag`  | warning  | 근사 지연이 `ALERT_MAX_OFFSET_LAG` 초과 (opt-in).              |
+| `cluster_node_down`        | critical | FE·BE·CN 노드가 하트비트에 응답하지 않음.                      |
+| `cluster_no_leader`        | critical | 선출된 프론트엔드 없음 — 메타데이터 쓰기 차단.                 |
+| `cluster_quorum_lost`      | critical | 선출 가능 프론트엔드의 과반이 살아 있지 않음.                  |
+| `cluster_id_mismatch`      | critical | 프론트엔드들이 서로 다른 cluster id 보고.                      |
+| `fe_journal_lag`           | warning  | FE가 리더 저널보다 `ALERT_MAX_JOURNAL_LAG` 이상 뒤처짐.        |
 
 내장 노티파이어:
 
@@ -216,6 +234,7 @@ make check   # 위 전부 — CI가 실행하는 것
 - [x] 알림 — 규칙 평가 루프, log + webhook 노티파이어, 테스트 발사 엔드포인트
 - [x] UI 다국어 지원 (영어·한국어, 단일 파일로 언어 추가)
 - [x] SQL 워크시트 — Monaco 에디터, 데이터베이스 스코프, 결과 그리드, 실행 프로파일
+- [x] 프론트엔드 HA·태블릿 계층 모니터링 — 저널 지연, 쿼럼, rowset/segment, 데이터 스큐
 - [ ] 데이터 리니지 — React Flow 기반 베이스 테이블 ↔ Materialized View DAG
 - [ ] 메트릭 — ECharts 기반 백엔드별 CPU/메모리 시계열 (Prometheus 클라이언트)
 - [x] 알림 설정 UI — 런타임 웹훅·임계값 변경, 환경 변수 계층화, 파일 영속화

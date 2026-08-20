@@ -39,6 +39,14 @@ export interface ClusterNode {
   /** Multi-warehouse assignment of a CN, when reported. */
   warehouse?: string
 
+  /** FE-only HA state; absent when the StarRocks version omits the column. */
+  replayedJournalId?: number
+  /** Entries this frontend trails the leader by; 0 on the leader itself. */
+  journalLag?: number
+  isHelper?: boolean
+  joined?: boolean
+  clusterId?: string
+
   /** BE/CN-only fields; absent when the StarRocks version omits the column. */
   tabletNum?: number
   cpuCores?: number
@@ -58,6 +66,15 @@ export interface TopologySummary {
   backendAlive: number
   computeTotal: number
   computeAlive: number
+  /** LEADER+FOLLOWER counts — the pool that votes in a metadata election. */
+  electableAlive: number
+  electableTotal: number
+  /** False when a majority of electable frontends is not alive. */
+  quorumHealthy: boolean
+  /** Largest metadata replication lag among live non-leader frontends. */
+  maxJournalLag?: number
+  /** True when frontends disagree on ClusterId. */
+  clusterIdMismatch: boolean
   /** Empty when no frontend has been elected leader. */
   leaderHost: string
   tabletTotal: number

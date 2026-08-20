@@ -45,6 +45,10 @@
     "metrics": {
       "label": "메트릭",
       "description": "시간별 CPU, 메모리, 쿼리 처리량"
+    },
+    "storage": {
+      "label": "스토리지",
+      "description": "테이블·태블릿·rowset 구성과 데이터 스큐"
     }
   },
   "time": {
@@ -112,7 +116,8 @@
       "downSuffix": "{{list}} 다운",
       "tablets": "태블릿",
       "tabletsHintSharedData": "컴퓨트 노드에 캐시된 수량",
-      "tabletsHint": "전체 백엔드 합계"
+      "tabletsHint": "전체 백엔드 합계",
+      "quorumHint": "쿼럼 {{alive}}/{{total}} 선출 가능 FE 정상"
     },
     "node": {
       "started": "시작 시각",
@@ -122,8 +127,14 @@
       "queries": "쿼리",
       "disk": "디스크",
       "memory": "메모리",
-      "warehouse": "웨어하우스"
-    }
+      "warehouse": "웨어하우스",
+      "journal": "저널 ID",
+      "journalCaughtUp": "메타데이터 동기화됨",
+      "journalBehind": "리더보다 {{count}}건 뒤처짐",
+      "journalLagHint": "이 프론트엔드가 리더의 메타데이터 저널을 얼마나 따라가지 못하는지. 복제가 멈춘 노드는 페일오버를 받을 수 없습니다."
+    },
+    "quorumLost": "메타데이터 쿼럼 상실: 선출 가능 프론트엔드 {{total}}대 중 {{alive}}대만 살아 있습니다. 과반이 복구될 때까지 메타데이터 쓰기가 차단됩니다.",
+    "clusterIdMismatch": "프론트엔드들이 서로 다른 cluster id를 보고합니다 — 최소 한 노드가 다른 클러스터 소속입니다."
   },
   "jobState": {
     "RUNNING": "실행 중",
@@ -195,7 +206,8 @@
     "save": "저장",
     "saveAndTest": "저장 후 테스트",
     "saved": "저장되었습니다. 다음 평가 주기부터 적용됩니다.",
-    "savedAndDelivered": "저장 완료 — 테스트 알림이 모든 채널에 도착했습니다."
+    "savedAndDelivered": "저장 완료 — 테스트 알림이 모든 채널에 도착했습니다.",
+    "maxJournalLag": "FE 저널 지연"
   },
   "errors": {
     "defaultTitle": "데이터를 불러오지 못했습니다",
@@ -245,6 +257,65 @@
         "시간에 따른 메모리·디스크 압박 추이",
         "쿼리 처리량과 슬로우 쿼리 수"
       ]
+    }
+  },
+  "storage": {
+    "loadError": "스토리지 통계를 불러오지 못했습니다",
+    "summary": {
+      "tables": "테이블",
+      "tablets": "태블릿",
+      "replicas": "복제본",
+      "unhealthy": "확인 필요",
+      "unhealthyHint": "unhealthy·불일치·오류 상태 태블릿",
+      "allHealthy": "모든 태블릿 정상"
+    },
+    "databases": {
+      "title": "데이터베이스별 태블릿 건강도",
+      "database": "데이터베이스",
+      "tables": "테이블",
+      "tablets": "태블릿",
+      "replicas": "복제본",
+      "unhealthy": "Unhealthy",
+      "inconsistent": "불일치",
+      "cloning": "복제 중",
+      "errorState": "오류 상태"
+    },
+    "tables": {
+      "title": "테이블",
+      "database": "데이터베이스",
+      "selectDatabase": "데이터베이스 선택",
+      "selectPrompt": "데이터베이스를 선택하면 테이블 목록이 표시됩니다.",
+      "empty": "이 데이터베이스에는 테이블이 없습니다.",
+      "name": "테이블",
+      "model": "모델",
+      "distribution": "분산 방식",
+      "buckets": "버킷",
+      "rows": "행 수",
+      "size": "크기"
+    },
+    "detail": {
+      "tablets": "태블릿",
+      "rowsets": "Rowset",
+      "segments": "Segment",
+      "maxRowsets": "태블릿당 최대 rowset",
+      "maxRowsetsHint": "컴팩션 압박: 한 태블릿의 rowset이 많으면 읽기가 그만큼 많은 파일을 병합해야 합니다.",
+      "abnormal": "비정상",
+      "skewTitle": "데이터 스큐",
+      "skewTablets": "태블릿 간",
+      "skewBackends": "백엔드 간",
+      "skewTabletsHint": "분산 키가 버킷에 얼마나 고르지 않게 해시되는지. 더 나은 키나 버킷 수로만 해결됩니다.",
+      "skewBackendsHint": "백엔드 간 부하 불균형 — 리밸런싱으로 해결되는 종류입니다.",
+      "ratio": "행 {{value}}배",
+      "bytesRatio": "용량 {{value}}배",
+      "notMeasurable": "측정 불가",
+      "distribution": "백엔드별 분포",
+      "backendSummary": "태블릿 {{tablets}} · 행 {{rows}} · {{size}}",
+      "partitions": "파티션",
+      "partition": "파티션",
+      "compactionScore": "최대 CS",
+      "balanced": "균형",
+      "yes": "예",
+      "no": "아니오"
     }
   }
 }

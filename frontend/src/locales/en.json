@@ -45,6 +45,10 @@
     "metrics": {
       "label": "Metrics",
       "description": "CPU, memory and query throughput over time"
+    },
+    "storage": {
+      "label": "Storage",
+      "description": "Table, tablet and rowset layout, plus data skew"
     }
   },
   "time": {
@@ -113,7 +117,8 @@
       "downSuffix": "{{list}} down",
       "tablets": "Tablets",
       "tabletsHintSharedData": "Cached across compute nodes",
-      "tabletsHint": "Total across all backends"
+      "tabletsHint": "Total across all backends",
+      "quorumHint": "Quorum {{alive}}/{{total}} electable frontends alive"
     },
     "node": {
       "started": "Started",
@@ -123,8 +128,14 @@
       "queries": "Queries",
       "disk": "Disk",
       "memory": "Memory",
-      "warehouse": "Warehouse"
-    }
+      "warehouse": "Warehouse",
+      "journal": "Journal id",
+      "journalCaughtUp": "Metadata in sync",
+      "journalBehind": "{{count}} entries behind the leader",
+      "journalLagHint": "How far this frontend trails the leader's metadata journal. A replica that stops replaying cannot take over."
+    },
+    "quorumLost": "Metadata quorum lost: only {{alive}} of {{total}} electable frontends are alive. Metadata writes are blocked until a majority returns.",
+    "clusterIdMismatch": "Frontends report different cluster ids — at least one node belongs to another cluster."
   },
   "jobState": {
     "RUNNING": "Running",
@@ -196,7 +207,8 @@
     "save": "Save",
     "saveAndTest": "Save & test",
     "saved": "Saved. Changes apply on the next evaluation tick.",
-    "savedAndDelivered": "Saved — the test alert reached every channel."
+    "savedAndDelivered": "Saved — the test alert reached every channel.",
+    "maxJournalLag": "Frontend journal lag"
   },
   "errors": {
     "defaultTitle": "Could not load data",
@@ -246,6 +258,65 @@
         "Memory and disk pressure over time",
         "Query throughput and slow query counts"
       ]
+    }
+  },
+  "storage": {
+    "loadError": "Could not load storage statistics",
+    "summary": {
+      "tables": "Tables",
+      "tablets": "Tablets",
+      "replicas": "Replicas",
+      "unhealthy": "Needs attention",
+      "unhealthyHint": "Unhealthy, inconsistent or error-state tablets",
+      "allHealthy": "Every tablet is healthy"
+    },
+    "databases": {
+      "title": "Tablet health by database",
+      "database": "Database",
+      "tables": "Tables",
+      "tablets": "Tablets",
+      "replicas": "Replicas",
+      "unhealthy": "Unhealthy",
+      "inconsistent": "Inconsistent",
+      "cloning": "Cloning",
+      "errorState": "Error state"
+    },
+    "tables": {
+      "title": "Tables",
+      "database": "Database",
+      "selectDatabase": "Select a database",
+      "selectPrompt": "Pick a database to browse its tables.",
+      "empty": "This database has no tables yet.",
+      "name": "Table",
+      "model": "Model",
+      "distribution": "Distribution",
+      "buckets": "Buckets",
+      "rows": "Rows",
+      "size": "Size"
+    },
+    "detail": {
+      "tablets": "Tablets",
+      "rowsets": "Rowsets",
+      "segments": "Segments",
+      "maxRowsets": "Max rowsets/tablet",
+      "maxRowsetsHint": "Compaction pressure: many rowsets on one tablet means reads merge more files than they should.",
+      "abnormal": "Abnormal",
+      "skewTitle": "Data skew",
+      "skewTablets": "Across tablets",
+      "skewBackends": "Across backends",
+      "skewTabletsHint": "How unevenly the distribution key hashes into buckets. Only a better key or bucket count fixes this.",
+      "skewBackendsHint": "Load imbalance between backends — this is what rebalancing fixes.",
+      "ratio": "{{value}}× rows",
+      "bytesRatio": "{{value}}× bytes",
+      "notMeasurable": "n/a",
+      "distribution": "Distribution across backends",
+      "backendSummary": "{{tablets}} tablets · {{rows}} rows · {{size}}",
+      "partitions": "Partitions",
+      "partition": "Partition",
+      "compactionScore": "Max CS",
+      "balanced": "Balanced",
+      "yes": "Yes",
+      "no": "No"
     }
   }
 }

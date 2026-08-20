@@ -1,4 +1,4 @@
-import { Boxes, Cpu, Crown, Server } from 'lucide-react'
+import { Boxes, CircleCheck, Cpu, Crown, Server, TriangleAlert } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -113,11 +113,54 @@ function WarehouseTag({ warehouse }: { warehouse: string }) {
 
 function FrontendFacts({ node }: { node: ClusterNode }) {
   const { t } = useTranslation()
+  const isLeader = node.role === 'LEADER'
+
   return (
-    <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
-      <Fact label={t('topology.node.started')} value={node.startTime} />
-      <Fact label={t('topology.node.heartbeat')} value={node.lastHeartbeat} />
-    </dl>
+    <div className="flex flex-col gap-2">
+      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+        <Fact label={t('topology.node.started')} value={node.startTime} />
+        <Fact label={t('topology.node.heartbeat')} value={node.lastHeartbeat} />
+        {node.replayedJournalId !== undefined && (
+          <Fact
+            label={t('topology.node.journal')}
+            value={formatNumber(node.replayedJournalId)}
+          />
+        )}
+      </dl>
+
+      {/* Replication lag only means something for a replica: the leader is the
+          reference point, so its own lag is always zero. */}
+      {!isLeader && node.journalLag !== undefined && (
+        <JournalLagBadge lag={node.journalLag} />
+      )}
+    </div>
+  )
+}
+
+/** Metadata replication lag: green when caught up, amber once it drifts. */
+function JournalLagBadge({ lag }: { lag: number }) {
+  const { t } = useTranslation()
+  const behind = lag > 0
+
+  return (
+    <span
+      className={cn(
+        'inline-flex w-fit items-center gap-1.5 rounded-md px-2 py-1 text-xs',
+        behind
+          ? 'bg-warning/10 text-warning ring-1 ring-inset ring-warning/25'
+          : 'bg-success/10 text-success ring-1 ring-inset ring-success/25',
+      )}
+      title={t('topology.node.journalLagHint')}
+    >
+      {behind ? (
+        <TriangleAlert className="size-3" />
+      ) : (
+        <CircleCheck className="size-3" />
+      )}
+      {behind
+        ? t('topology.node.journalBehind', { count: lag })
+        : t('topology.node.journalCaughtUp')}
+    </span>
   )
 }
 
